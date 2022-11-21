@@ -95,8 +95,7 @@ def create_end_bspline_Ucurves(factory, surface, point_tags):
 
     return [C1, C2]
 
-
-def create_bspline_surface_volume(factory, surfaces, lc=2e-2):
+def create_bspline_volume_surfaces(factory, surfaces, lc=2e-2):
     surface_tags = []
     start_curves = []
     end_curves = []
@@ -111,13 +110,18 @@ def create_bspline_surface_volume(factory, surfaces, lc=2e-2):
         start_curves.append(C1)
         end_curves.append(C2)
 
+    return [surface_tags, start_curves, end_curves]
+
+def create_bspline_volume(factory, surfaces, lc=2e-2):
+    surface_tags, start_curves, end_curves = create_bspline_volume_surfaces(factory, surfaces, lc=lc)
+
     S1 = factory.add_plane_surface(start_curves)
     S2 = factory.add_plane_surface(end_curves)
 
     Sl_1 = factory.add_surface_loop([S1, surface_tags[0], S2])
     V1 = factory.add_volume([Sl_1])
 
-    return [V1, point_tags]
+    return V1
 
 
 def create_bspline_curve_mesh(curves, lc=2e-2, show_mesh=False):
@@ -191,7 +195,7 @@ def create_bspline_volume_mesh(surfaces, lc=2e-2, show_mesh=False):
     gmsh.initialize()
     factory = gmsh.model.occ
 
-    volume_tag, _ = create_holed_bspline_surface_volume(factory, surfaces, lc)
+    volume_tag = create_bspline_volume(factory, surfaces, lc)
     gmsh.model.occ.heal_shapes()
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
@@ -228,48 +232,6 @@ def create_holed_bspline_curve_mesh(curves, lc=2e-2, show_mesh=False):
 
     factory.synchronize()
     gmsh.model.mesh.generate(2)
-
-    if show_mesh and '-nopopup' not in sys.argv:
-        gmsh.fltk.run()
-
-    return gmsh
-
-
-def create_holed_bspline_surface_volume(factory, surfaces, lc=2e-2):
-    surface_tags = []
-    start_curves = []
-    end_curves = []
-    for surface in surfaces:
-        surface_tag, point_tags = create_bspline_surface(factory, surface, lc)
-        surface_tags.append(surface_tag)
-        
-        if not surface.is_closed(): 
-            raise ValueError("The surface must be fully closed except at its end faces")
-
-        C1, C2 = create_end_bspline_Ucurves(factory, surface, point_tags)
-        start_curves.append(C1)
-        end_curves.append(C2)
-
-    S1 = factory.add_plane_surface(start_curves)
-    S2 = factory.add_plane_surface(end_curves)
-
-    Sl_1 = factory.add_surface_loop([S1, surface_tags[0], S2])
-    V1 = factory.add_volume([Sl_1])
-
-    return [V1, point_tags]
-
-
-def create_holed_bspline_volume_mesh(surfaces, lc=2e-2, show_mesh=False):
-    if not isinstance(surfaces, list):
-        surfaces = [surfaces]
-
-    gmsh.initialize()
-    factory = gmsh.model.occ
-
-    volume_tag, _ = create_holed_bspline_surface_volume(factory, surfaces, lc)
-    gmsh.model.occ.heal_shapes()
-    gmsh.model.occ.synchronize()
-    gmsh.model.mesh.generate(3)
 
     if show_mesh and '-nopopup' not in sys.argv:
         gmsh.fltk.run()
