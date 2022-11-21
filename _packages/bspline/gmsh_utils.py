@@ -1,7 +1,6 @@
 import gmsh
 import numpy as np
 import sys
-from bspline.bspline_curve import BSplineCurve
 
 def add_bspline_points(factory, curve):
     point_tags = []
@@ -163,7 +162,7 @@ def create_bspline_curve_mesh_file(curve, filepath, lc=2e-2, show_mesh=False):
     gmsh.write(filepath)
 
 
-def create_bspline_surface_mesh_model(curve, lc=2e-2, show_mesh=False):
+def create_bspline_curve_mesh_model(curve, lc=2e-2, show_mesh=False):
     gmsh = create_bspline_curve_mesh(curve, lc=lc, show_mesh=show_mesh)
     return gmsh.model
 
