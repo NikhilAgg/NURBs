@@ -112,6 +112,7 @@ def create_bspline_volume_surfaces(factory, surfaces, lc=2e-2):
 
     return [surface_tags, start_curves, end_curves]
 
+
 def create_bspline_volume(factory, surfaces, lc=2e-2):
     surface_tags, start_curves, end_curves = create_bspline_volume_surfaces(factory, surfaces, lc=lc)
 
@@ -123,6 +124,16 @@ def create_bspline_volume(factory, surfaces, lc=2e-2):
 
     return V1
 
+def create_bspline_volume_endbsplines(factory, surfaces, start_surface, end_surface, lc=2e-2):
+    surface_tags, start_curves, end_curves = create_bspline_volume_surfaces(factory, surfaces, lc=lc)
+
+    S1 = create_bspline_surface(start_surface)
+    S2 = create_bspline_surface(end_surface)
+
+    Sl_1 = factory.add_surface_loop([S1, surface_tags[0], S2])
+    V1 = factory.add_volume([Sl_1])
+
+    return V1
 
 def create_bspline_curve_mesh(curves, lc=2e-2, show_mesh=False):
     if not isinstance(curves, list):
