@@ -225,25 +225,3 @@ def create_bspline_volume_mesh_model(surface, lc=2e-2, show_mesh=False):
     gmsh = create_bspline_volume_mesh(surface, lc=lc, show_mesh=show_mesh)
     return gmsh.model
 
-
-def create_holed_bspline_curve_mesh(curves, lc=2e-2, show_mesh=False):
-    if not isinstance(curves, list):
-        curves = [curves]
-
-    gmsh.initialize()
-    factory = gmsh.model.occ
-    
-    curve_tags = []
-    for curve in curves:
-        curve_tag, _ = create_bspline_curve(factory, curve, lc)
-        curve_tags.append(curve_tag)
-    
-    factory.add_plane_surface(curve_tags, 1)
-
-    factory.synchronize()
-    gmsh.model.mesh.generate(2)
-
-    if show_mesh and '-nopopup' not in sys.argv:
-        gmsh.fltk.run()
-
-    return gmsh

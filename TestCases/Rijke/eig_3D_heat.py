@@ -10,7 +10,7 @@ import ufl
 from petsc4py import PETSc
 from slepc4py import SLEPc
 import numpy as np
-from utils.utils import eigs_to_pdf_3d
+from dolfinx_utils.utils import eigs_to_pdf_3d
 from dolfinx.io import XDMFFile
 import matplotlib.pyplot as plt
 from scipy.linalg import null_space
@@ -284,6 +284,9 @@ def main():
     # print(D[20:30,20:30])
     
     eig_pairs = get_nonlin_eigenvalues([A, B, C, -D], [f1, f2, f3, f6], dimensions=5, target=target, return_vecs=True)
+    print("Hello")
+    for i, j in eig_pairs:
+        print(i)
     # print(eigs[0][0])
     # eig_pairs = [(w_k, vec_k)]
     # w_k = 3.4255 - 0.0019j
@@ -345,8 +348,8 @@ def main():
     #     print(f"\n\ns: {np.sqrt(eig_pairs[i][0])}\n\n")
 
     # # #- Export and import mesh
-    topology, cell_types, geometry = plot.create_vtk_mesh(msh, msh.topology.dim)
-    eigs_to_pdf_3d(V, msh, eig_pairs, data_label="p", filename=path/"output/3D_eigs.pdf")
+    #topology, cell_types, geometry = plot.create_vtk_mesh(msh, msh.topology.dim)
+    #eigs_to_pdf_3d(V, msh, eig_pairs, data_label="p", filename=path/"output/3D_eigs.pdf")
 
     # msh.topology.create_connectivity(msh.topology.dim-1, msh.topology.dim)
     # with XDMFFile(msh.comm, "facet_tags.xdmf", "w") as xdmf:
