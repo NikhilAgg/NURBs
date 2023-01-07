@@ -79,7 +79,7 @@ def create_prism_bspline_surface(curve, L, nL):
 def create_cylinder_bspline_surface(r=1, O=[0, 0, 0], L=1, normal=[0, 0, 1], nL=1):
     unit_norm = normal/np.linalg.norm(normal)
 
-    circle = create_circle_bspline_curve(r, O, normal)
+    circle = create_circle_bspline_curve(r, O, unit_norm)
     surface = create_prism_bspline_surface(circle, L, nL)
 
     return surface
