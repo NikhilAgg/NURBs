@@ -8,31 +8,57 @@ class BSplineCurve:
     def __init__(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None, lc=None):
         self.ctrl_points = np.array(ctrl_points)
         self.n = len(ctrl_points)
-        self.weights = weights or np.ones(self.n)
+        self.weights = np.array(weights) if weights else np.ones(self.n)
+        
         self.knots = knots
         self.multiplicities = multiplicities or np.ones(len(knots))
+        self.U = np.array([[knots[i]] * multiplicities[i] for i in range(len(knots))]).flatten()
+        
         self.degree = degree
         self.lc = lc
+        
 
     def set_uniform_lc(self, lc):
         self.lc = np.ones(self.n) * lc
 
+
     def is_closed(self):
         return np.all(self.ctrl_points[0] == self.ctrl_points[-1])
 
-    def get_unit_normal(self):
-        if not self.is_closed():
-            return -1
-        v1 = self.ctrl_points[0] - self.ctrl_points[1]
 
-        normal = np.array([0, 0, 0])
-        i = 0
-        while np.all(normal == 0):
-            v2 = self.ctrl_points[i] - self.ctrl_points[1]
-            normal = np.cross(v1, v2)
-            i += 1
+    def control_point_deriv(self, i_deriv, u):
+        i = find_span(self.n, self.degree, u, self.U)
 
-        return normal/np.linalg.norm(normal)
+        if i < i_deriv or i > i_deriv + self.degree:
+            return 0 #np.zeros(len(c_pnts[0]))
+            
+        N = nurb_basis(i, self.degree, u, self.U)
+        
+        denom = 0.0
+
+        ind, no_nonzero_basis = find_inds(i, self.degree)
+        for k in range(no_nonzero_basis):
+            denom += N[k] * self.weights[ind + k]
+        
+        return (N[i_deriv - i + self.degree] * self.weights[i_deriv]) / denom
+
+
+    def calculate_point(self, u):
+        P_w = np.column_stack(((self.c_pnts.T * self.weights).T, self.weights))
+
+        i = find_span(self.n, self.degree, u, self.U)
+        N = nurb_basis(i, self.degree, u, self.U)
+
+        curve = np.zeros(len(P_w[0]))
+
+        ind, no_nonzero_basis = find_inds(i, self.degree)
+        for k in range(no_nonzero_basis):
+            curve += P_w[ind + k] * N[k]
+
+        return curve[:-1]/curve[-1]
+
+
+
 
 class BSplineSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
