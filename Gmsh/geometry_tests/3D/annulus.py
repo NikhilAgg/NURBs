@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineSurface, BSpline3DGeometry
+from bspline.bspline_curve import BSplineSurface, BSpline3DGeometry, BSplineCurve, BSpline2DGeometry
 from bspline.gmsh_utils import create_bspline_volume_mesh_file
 from pathlib import Path
 import os

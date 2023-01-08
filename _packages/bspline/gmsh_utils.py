@@ -2,34 +2,48 @@ import gmsh
 import numpy as np
 import sys
 
-def add_bspline_points(factory, curve):
-    """
-    Adds the control points in a BSpline Curve to gmsh
+def add_bspline_points(factory, curve, point_dict):
+        point_tags = []
+        for point, lc_i in zip(curve.ctrl_points, curve.lc):
+            if tuple(point) not in point_dict:
+                tag = factory.addPoint(*point, lc_i)
+                point_dict[tuple(point)] = tag
+            else:
+                tag = point_dict[tuple(point)]
 
-    Parameters
-    ------------------------
-    factory: 
-        Gmsh factory object in which the points will be added e.g gmsh.model.occ
-    curve: BSplineCurve
-        The bspline curve object containing the control points to add
+            point_tags.append(tag)
 
-    Returns
-    -------------------------
-    point_tags: list
-        A list of the identifier tags of each of the control points in gmsh
-    """
-    point_tags = []
-    point_dict = {}
-    for point, lc_i in zip(curve.ctrl_points, curve.lc):
-        if tuple(point) not in point_dict:
-            tag = factory.addPoint(*point, lc_i)
-            point_dict[tuple(point)] = tag
-        else:
-            tag = point_dict[tuple(point)]
+        return point_tags, point_dict
 
-        point_tags.append(tag)
 
-    return point_tags
+# def add_bspline_points(factory, curve):
+#     """
+#     Adds the control points in a BSpline Curve to gmsh
+
+#     Parameters
+#     ------------------------
+#     factory: 
+#         Gmsh factory object in which the points will be added e.g gmsh.model.occ
+#     curve: BSplineCurve
+#         The bspline curve object containing the control points to add
+
+#     Returns
+#     -------------------------
+#     point_tags: list
+#         A list of the identifier tags of each of the control points in gmsh
+#     """
+#     point_tags = []
+#     point_dict = {}
+#     for point, lc_i in zip(curve.ctrl_points, curve.lc):
+#         if tuple(point) not in point_dict:
+#             tag = factory.addPoint(*point, lc_i)
+#             point_dict[tuple(point)] = tag
+#         else:
+#             tag = point_dict[tuple(point)]
+
+#         point_tags.append(tag)
+
+#     return point_tags
 
 
 def create_bspline_curve(factory, curve, lc=2e-2):

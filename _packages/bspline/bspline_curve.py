@@ -1,6 +1,8 @@
 import numpy as np
 import gmsh
 import sys
+from .generator_utils import *
+from .gmsh_utils import add_bspline_points
 
 class BSplineCurve:
     def __init__(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None, lc=None):
@@ -62,20 +64,6 @@ class BSplineSurface:
         
         return is_closed
 
-
-def add_bspline_points(factory, curve, point_dict):
-        point_tags = []
-        for point, lc_i in zip(curve.ctrl_points, curve.lc):
-            if tuple(point) not in point_dict:
-                tag = factory.addPoint(*point, lc_i)
-                point_dict[tuple(point)] = tag
-            else:
-                tag = point_dict[tuple(point)]
-
-            point_tags.append(tag)
-
-        return point_tags, point_dict
-
         
 class BSpline2DGeometry:
     def __init__(self, outer_bsplines=[], inner_bsplines=[]):
@@ -92,6 +80,8 @@ class BSpline2DGeometry:
         self.gmsh.initialize()
         self.model = self.gmsh.model
         self.factory = self.model.occ
+
+        #TODO Add checks that bsplines are closed, and in the same plane
 
 
     def create_bspline_curve(self, bsplines):
@@ -152,6 +142,9 @@ class BSpline3DGeometry:
         self.model = self.gmsh.model
         self.factory = self.model.occ
 
+        #TODO Add checks that bsplines are closed and curveloop can be made
+        #TODO Fix degenerate bspline case
+
     
     def create_bspline_surface(self, bsplines):
         surface_tags = []
@@ -192,7 +185,7 @@ class BSpline3DGeometry:
 
         self.factory.heal_shapes()
         self.factory.synchronize()
-        # self.model.mesh.generate(3)
+        self.model.mesh.generate(3)
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()
