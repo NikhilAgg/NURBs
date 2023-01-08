@@ -3,6 +3,7 @@ import gmsh
 import sys
 from .generator_utils import *
 from .gmsh_utils import add_bspline_points
+from itertools import chain
 
 class BSplineCurve:
     def __init__(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None, lc=None):
@@ -12,10 +13,13 @@ class BSplineCurve:
         
         self.knots = knots
         self.multiplicities = multiplicities or np.ones(len(knots))
-        self.U = np.array([[knots[i]] * multiplicities[i] for i in range(len(knots))]).flatten()
+        self.U = list(chain.from_iterable([[knots[i]] * multiplicities[i] for i in range(len(knots))]))
         
         self.degree = degree
         self.lc = lc
+
+        #TODO FIX U DIFFERENCE AND PERIODIC SPLINES
+        #TODO ADD CHECKS
         
 
     def set_uniform_lc(self, lc):
@@ -44,7 +48,7 @@ class BSplineCurve:
 
 
     def calculate_point(self, u):
-        P_w = np.column_stack(((self.c_pnts.T * self.weights).T, self.weights))
+        P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
 
         i = find_span(self.n, self.degree, u, self.U)
         N = nurb_basis(i, self.degree, u, self.U)
