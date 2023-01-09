@@ -34,7 +34,7 @@ circle.set_uniform_lc(1e-2)
 
 t = np.linspace(0, 1, 100)
 y = np.array([circle.calculate_point(u) for u in t])
-dy = np.array([[circle.control_point_deriv(ind_der, u)] for u in t])
+dy = np.array([[circle.derivative_wrt_ctrl_point(ind_der, u)] for u in t])
 der = y + dy * epsilon
 
 plt.plot(y[:, 0], y[:, 1], label = "Original")

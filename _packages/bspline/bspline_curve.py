@@ -30,11 +30,11 @@ class BSplineCurve:
         return np.all(self.ctrl_points[0] == self.ctrl_points[-1])
 
 
-    def control_point_deriv(self, i_deriv, u):
+    def derivative_wrt_ctrl_point(self, i_deriv, u):
         i = find_span(self.n, self.degree, u, self.U)
 
         if i < i_deriv or i > i_deriv + self.degree:
-            return 0 #np.zeros(len(c_pnts[0]))
+            return 0
             
         N = nurb_basis(i, self.degree, u, self.U)
         
@@ -66,21 +66,27 @@ class BSplineCurve:
 
 class BSplineSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
-        self.ctrl_points = ctrl_points
+        self.ctrl_points = np.array(ctrl_points)
         self.n = len(ctrl_points)
-        self.weights = weights if np.any(weights!=None) else np.ones(self.n)
+        self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.n)
+
         self.knotsU = knotsU
         self.knotsV = knotsV
         self.multiplicitiesU = multiplicitiesU or np.ones(len(knotsU))
         self.multiplicitiesV = multiplicitiesV or np.ones(len(knotsV))
+        self.U = list(chain.from_iterable([[knotsU[i]] * multiplicitiesU[i] for i in range(len(knotsU))]))
+        self.V = list(chain.from_iterable([[knotsV[i]] * multiplicitiesV[i] for i in range(len(knotsV))]))
+
         self.degreeU = degreeU
         self.degreeV = degreeV
         self.lc = lc
         self.nU = self.degreeU * (len(knotsU) - 1) + 1
         self.nV = self.degreeV * (len(knotsV) - 1) + 1
+        
 
     def set_uniform_lc(self, lc):
         self.lc = np.ones(self.n) * lc
+
 
     def is_closed(self):
         is_closed = True
@@ -93,6 +99,52 @@ class BSplineSurface:
                 is_closed = False
         
         return is_closed
+
+
+    def calculate_point(self, u, v):
+        P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
+        n_u = len(self.U) - self.degreeU - 1
+        n_v = len(self.V) - self.degreeV - 1
+        
+        i_u = find_span(n_u, self.degreeU, u, self.U)
+        i_v = find_span(n_v, self.degreeV, v, self.V)
+        
+        N_u = nurb_basis(i_u, self.degreeU, u, self.U)
+        N_v = nurb_basis(i_v, self.degreeV, v, self.V)
+
+        temp = np.zeros((self.degreeV+1, len(P_w[0])))
+        for j in range(self.degreeV + 1):
+            ind, no_nonzero_basis = find_inds(i_u, self.degreeU)
+            ind += j * n_u
+            for k in range(no_nonzero_basis):
+                temp[j] += P_w[ind + k] * N_u[k]
+                
+        surface = np.zeros(len(P_w[0]))
+        for l in range(self.degreeV + 1):
+            surface += N_v[l] * temp[l]
+
+        return surface[:-1]/surface[-1]
+
+
+    def derivative_wrt_ctrl_point(self, i_deriv, j_deriv, u, v):
+        i_u = find_span(self.nU, self.degreeU, u, self.U)
+        i_v = find_span(self.nV, self.degreeV, v, self.V)
+
+        if i_u < i_deriv or i_u > i_deriv + self.degreeU or i_v < j_deriv or i_v > j_deriv + self.degreeV:
+            return 0
+            
+        N_u = nurb_basis(i_u, self.degreeU, u, self.U)
+        N_v = nurb_basis(i_v, self.degreeV, v, self.V)
+        
+        denom = 0.0
+        ind_v, _ = find_inds(i_v, self.degreeV)
+        ind_u, _ = find_inds(i_u, self.degreeU)
+        for k in range(len(N_v)):
+            for l in range(len(N_u)):
+                denom += N_v[k] * N_u[l] * self.weights[(ind_v + k) * self.nU + (ind_u + l)]
+        
+        return (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.weights[j_deriv * self.nU + i_deriv]) / denom
+
 
         
 class BSpline2DGeometry:
