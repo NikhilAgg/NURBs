@@ -1,8 +1,6 @@
-from bspline.bspline_curve import BSplineCurve, BSpline2DGeometry
-from bspline.gmsh_utils import create_bspline_curve_mesh_file
+from bspline.bspline_curve import BSplineCurve
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 epsilon = np.array([[0, 0.1, 0]])
 ind_der = 3
@@ -34,7 +32,7 @@ circle.set_uniform_lc(1e-2)
 
 t = np.linspace(0, 1, 100)
 y = np.array([circle.calculate_point(u) for u in t])
-dy = np.array([[circle.derivative_wrt_ctrl_point(ind_der, u)] for u in t])
+dy = np.array([[circle.derivative_wrt_ctrl_point(ind_der, u)[0]] for u in t])
 der = y + dy * epsilon
 
 plt.plot(y[:, 0], y[:, 1], label = "Original")

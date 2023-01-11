@@ -34,17 +34,24 @@ class BSplineCurve:
         i = find_span(self.n, self.degree, u, self.U)
 
         if i < i_deriv or i > i_deriv + self.degree:
-            return 0
+            return [0, [0, 0, 0]]
             
         N = nurb_basis(i, self.degree, u, self.U)
         
         denom = 0.0
-
+        numerator_sum = 0.0 #This is equal to the summation in the numerator of the second term in the derivative wrt to the weights
         ind, no_nonzero_basis = find_inds(i, self.degree)
         for k in range(no_nonzero_basis):
-            denom += N[k] * self.weights[ind + k]
+            common = N[k] * self.weights[ind + k]
+            denom += common
+            numerator_sum += common * self.ctrl_points[ind + k]
+
+        deriv_wrt_point = (N[i_deriv - i + self.degree] * self.weights[i_deriv]) / denom
+
+        deriv_wrt_weight = (N[i_deriv - i + self.degree] * self.ctrl_points[i_deriv]) / denom - \
+                           (N[i_deriv - i + self.degree] * numerator_sum)/denom**2
         
-        return (N[i_deriv - i + self.degree] * self.weights[i_deriv]) / denom
+        return [deriv_wrt_point, deriv_wrt_weight]
 
 
     def calculate_point(self, u):
@@ -131,19 +138,27 @@ class BSplineSurface:
         i_v = find_span(self.nV, self.degreeV, v, self.V)
 
         if i_u < i_deriv or i_u > i_deriv + self.degreeU or i_v < j_deriv or i_v > j_deriv + self.degreeV:
-            return 0
+            return [0, [0, 0, 0]]
             
         N_u = nurb_basis(i_u, self.degreeU, u, self.U)
         N_v = nurb_basis(i_v, self.degreeV, v, self.V)
         
         denom = 0.0
+        numerator_sum = 0.0 ##This is equal to the summation in the numerator of the second term in the derivative wrt to the weights
         ind_v, _ = find_inds(i_v, self.degreeV)
         ind_u, _ = find_inds(i_u, self.degreeU)
         for k in range(len(N_v)):
             for l in range(len(N_u)):
-                denom += N_v[k] * N_u[l] * self.weights[(ind_v + k) * self.nU + (ind_u + l)]
+                common = N_v[k] * N_u[l] * self.weights[(ind_v + k) * self.nU + (ind_u + l)]
+                denom += common
+                numerator_sum += common * self.ctrl_points[(ind_v + k) * self.nU + (ind_u + l)]
+
+        deriv_wrt_point = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.weights[j_deriv * self.nU + i_deriv]) / denom
         
-        return (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.weights[j_deriv * self.nU + i_deriv]) / denom
+        deriv_wrt_weight = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.ctrl_points[j_deriv * self.nU + i_deriv]) / denom - \
+                            (numerator_sum * N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV])/denom**2
+        
+        return [deriv_wrt_point, deriv_wrt_weight]
 
 
         

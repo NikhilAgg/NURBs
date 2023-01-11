@@ -52,7 +52,7 @@ cylinder.set_uniform_lc(1e-2)
 t = np.linspace(0, 1, 100)
 s = np.linspace(0, 1, 100)
 y = np.array([cylinder.calculate_point(u, v) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
-dy = np.array([[cylinder.derivative_wrt_ctrl_point(i_der, j_der, u, v)] for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
+dy = np.array([[cylinder.derivative_wrt_ctrl_point(i_der, j_der, u, v)[0]] for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
 der = y + dy * epsilon
 
 fig = plt.figure()

@@ -1,8 +1,6 @@
-from bspline.bspline_curve import BSplineCurve, BSpline2DGeometry
-from bspline.gmsh_utils import create_bspline_curve_mesh_file
+from bspline.bspline_curve import BSplineCurve
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 def calc(epsilon, ind_der):
     points = [
@@ -32,23 +30,10 @@ def calc(epsilon, ind_der):
 
     t = np.linspace(0, 1, 100)
     y = np.array([circle.calculate_point(u) for u in t])
-    dy = np.array([[circle.derivative_wrt_ctrl_point(ind_der, u)] for u in t])
+    dy = np.array([circle.derivative_wrt_ctrl_point(ind_der, u)[1] for u in t])
     der = y + dy * epsilon
 
-    points = np.array([
-        [1, 0, 0],
-        [1, 1, 0],
-        [0, 1, 0],
-        [-1, 1, 0],
-        [-1, 0, 0],
-        [-1, -1, 0],
-        [0, -1, 0],
-        [1, -1, 0],
-        [1, 0, 0]
-    ], dtype=np.float32)
-
-    for i in range(3):
-        points[ind_der, i] += epsilon[0][i]
+    weights[ind_der] += epsilon
 
     circle = BSplineCurve(
         points,
@@ -68,14 +53,13 @@ def calc(epsilon, ind_der):
 y_tay = []
 x_tay = []
 
-ep_step = 0.01
+ep_step = 0.1
 ind_der = 1
 coord = np.array([[0, 1, 0]])
 
-for k in range(4):
+for k in range(5):
     epsilon = ep_step * k
-    epsilon_coord = coord * epsilon
-    y, der = calc(epsilon_coord, ind_der)
+    y, der = calc(epsilon, ind_der)
     error = 0
     for i in range(len(y)):
         error += np.linalg.norm(y[i] - der[i])**2
