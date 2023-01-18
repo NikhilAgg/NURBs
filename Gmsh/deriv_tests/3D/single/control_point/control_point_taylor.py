@@ -98,12 +98,12 @@ def calc(epsilon, i_der, j_der):
 y_tay = []
 x_tay = []
 
-ep_step = 0.01
+ep_step = 10
 i_der = 3
 j_der = 1
 coord = np.array([[0, 1, 0]])
 
-for k in range(4):
+for k in range(10):
     epsilon = ep_step * k
     epsilon_coord = coord * epsilon
     y, der = calc(epsilon_coord, i_der, j_der)

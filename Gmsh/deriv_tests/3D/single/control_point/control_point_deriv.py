@@ -6,7 +6,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import os
 
-epsilon = np.array([[0, 5, 0]])
+epsilon = np.array([[-10, 10, 0]])
 i_der = 3
 j_der = 1
 

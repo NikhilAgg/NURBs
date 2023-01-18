@@ -76,11 +76,11 @@ def calc(epsilon, i_der, j_der):
 y_tay = []
 x_tay = []
 
-ep_step = 0.1
+ep_step = 0.0001
 i_der = 3
 j_der = 1
 
-for k in range(10):
+for k in range(5):
     epsilon = ep_step * k
     y, der = calc(epsilon, i_der, j_der)
     error = 0

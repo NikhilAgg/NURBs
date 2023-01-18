@@ -53,7 +53,7 @@ def calc(epsilon, ind_der):
 y_tay = []
 x_tay = []
 
-ep_step = 0.1
+ep_step = 0.01
 ind_der = 1
 coord = np.array([[0, 1, 0]])
 
