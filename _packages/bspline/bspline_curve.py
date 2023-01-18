@@ -207,6 +207,7 @@ class BSplineCurve:
 class BSplineSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
         self.ctrl_points = np.array(ctrl_points)
+        self.dim = len(self.ctrl_points[0])
         self.n = len(ctrl_points)
         self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.n)
 
@@ -292,6 +293,61 @@ class BSplineSurface:
                             (numerator_sum * N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV])/denom**2
         
         return [deriv_wrt_point, deriv_wrt_weight]
+
+    
+    def derivative_wrt_uv(self, u, v, k):
+        A_ders, w_ders = self.calculate_num_and_den_derivatives(u, v, k)
+        ders = np.zeros((k+1, k+1, self.dim))
+
+        for l in range(k+1):
+            for m in range(k-l+1):
+                v = A_ders[l][m]
+                for j in range(1, m+1):
+                    v -= math.comb(m, j) * w_ders[0][j] * ders[l][m-j]
+                
+                for i in range(1, l+1):
+                    v -= math.comb(l, i) * w_ders[i][0] * ders[l-i][m]
+                    v2 = 0.0
+                    for j in range(1, m+1):
+                        v2 += math.comb(m,j) * w_ders[i][j] * ders[l-i][m-j]
+                    v -= math.comb(l, i) * v2
+
+                ders[l][m] = v/w_ders[0][0]
+
+        return ders
+
+
+    def calculate_num_and_den_derivatives(self, u, v, k):
+        A_ders = np.zeros((k+1, k+1, self.dim))
+        w_ders = np.zeros((k+1, k+1))
+
+        i_u = find_span(self.nU, self.degreeU, u, self.U)
+        N_ders_u = nurb_basis_derivatives(i_u, u, self.degreeU, self.U, k)
+
+        i_v = find_span(self.nV, self.degreeV, v, self.V)
+        N_ders_v = nurb_basis_derivatives(i_v, v, self.degreeV, self.V, k)
+
+        temp_A = np.zeros((self.degreeV+1, self.dim))
+        temp_w = np.zeros(self.degreeV+1)
+        for l in range(min(k, self.degreeU) + 1):
+            for s in range(self.degreeV + 1):
+                temp_w[s] = 0.0
+                temp_A[s] = [0.0] * self.dim
+                for r in range(self.degreeU + 1):
+                    common = N_ders_u[l][r] * self.weights[(i_v-self.degreeV+s) * self.nU + (i_u-self.degreeU+r)]
+                    temp_w[s] += common
+                    temp_A[s] += common * self.ctrl_points[(i_v-self.degreeV+s) * self.nU + (i_u-self.degreeU+r)]
+
+            for m in range(min(k-l, min(k, self.degreeV))+1):
+                A_ders[l][m] = [0.0] * self.dim
+                w_ders[l][m] = 0.0
+                for s in range(self.degreeV+1):
+                    A_ders[l][m] += N_ders_v[m][s]*temp_A[s]
+                    w_ders[l][m] += N_ders_v[m][s]*temp_w[s]
+
+        return A_ders, w_ders
+
+        
 
         
 class BSpline2DGeometry:
