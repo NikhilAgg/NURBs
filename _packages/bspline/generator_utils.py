@@ -113,7 +113,7 @@ def nurb_basis_derivatives(i, u, p, U, k):
 	for l in range(1, k+1):
 		for j in range(p+1):
 			ders[l][j] *= r
-			r *= p-l
+		r *= p-l
 
 	return ders
 

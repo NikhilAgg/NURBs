@@ -60,8 +60,8 @@ cylinder = BSplineSurface(
 )
 cylinder.set_uniform_lc(1e-2)
 
-t = np.linspace(0, 1, 10)
-s = np.linspace(0, 1, 10)
+t = np.linspace(0, 1, 100)
+s = np.linspace(0, 1, 100)
 y = np.array([cylinder.calculate_point(u, v) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
 
 dt = np.linspace(0, 1, 10)

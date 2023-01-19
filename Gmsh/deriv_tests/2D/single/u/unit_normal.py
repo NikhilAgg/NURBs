@@ -32,12 +32,30 @@ circle = BSplineCurve(
 )
 circle.set_uniform_lc(1e-2)
 
-t = np.linspace(0, 1, 30)
+# points = [
+#     [0, 0],
+#     [0, 1]
+# ]
+
+# weights = [1, 1]
+# knots = [0, 1]
+# multiplicities = [2, 2]
+
+# circle = BSplineCurve(
+#     points,
+#     weights,
+#     knots,
+#     multiplicities,
+#     1
+# )
+# circle.set_uniform_lc(1e-2)
+
+t = np.linspace(0, 1, 100)
 dt = np.linspace(0, 1, 30)
 y = np.array([circle.calculate_point(u) for u in t])
 arrow_y = np.array([circle.calculate_point(u) for u in dt])
 dy = np.array([circle.derivative_wrt_u(u, 1)[1] for u in dt])
 
-plt.scatter(y[:, 0], y[:, 1], label = "Original")
+plt.plot(y[:, 0], y[:, 1], label = "Original")
 plt.quiver(arrow_y[:, 0], arrow_y[:, 1], -dy[:, 1], dy[:, 0])
 plt.show()
