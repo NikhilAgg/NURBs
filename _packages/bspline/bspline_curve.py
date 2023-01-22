@@ -290,9 +290,9 @@ class BSplineSurface:
                 temp_w[s] = 0.0
                 temp_A[s] = [0.0] * self.dim
                 for r in range(self.degreeU + 1):
-                    common = N_ders_u[l][r] * self.weights[(i_v-self.degreeV+s) * self.nU + (i_u-self.degreeU+r)]
+                    common = N_ders_u[l][r] * self.weights[i_v-self.degreeV+s][i_u-self.degreeU+r]
                     temp_w[s] += common
-                    temp_A[s] += common * self.ctrl_points[(i_v-self.degreeV+s) * self.nU + (i_u-self.degreeU+r)]
+                    temp_A[s] += common * self.ctrl_points[i_v-self.degreeV+s][i_u-self.degreeU+r]
 
             for m in range(min(k-l, min(k, self.degreeV))+1):
                 A_ders[l][m] = [0.0] * self.dim
