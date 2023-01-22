@@ -167,8 +167,8 @@ class BSplineSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
         self.ctrl_points = np.array(ctrl_points)
         self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.ctrl_points.shape)
-        self.nU = self.ctrl_points.shape[0]
-        self.nV = self.ctrl_points.shape[1]
+        self.nV = self.ctrl_points.shape[0]
+        self.nU = self.ctrl_points.shape[1]
         self.n = self.nU * self.nV
         self.dim = len(self.ctrl_points[0][0])
         
