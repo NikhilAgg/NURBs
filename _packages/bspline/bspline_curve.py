@@ -166,10 +166,12 @@ class BSplineCurve:
 class BSplineSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
         self.ctrl_points = np.array(ctrl_points)
-        self.dim = len(self.ctrl_points[0])
-        self.n = len(ctrl_points)
-        self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.n)
-
+        self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.ctrl_points.shape)
+        self.nU = self.ctrl_points.shape[0]
+        self.nV = self.ctrl_points.shape[1]
+        self.n = self.nU * self.nV
+        self.dim = len(self.ctrl_points[0][0])
+        
         self.knotsU = knotsU
         self.knotsV = knotsV
         self.multiplicitiesU = multiplicitiesU or np.ones(len(knotsU))
@@ -180,12 +182,10 @@ class BSplineSurface:
         self.degreeU = degreeU
         self.degreeV = degreeV
         self.lc = lc
-        self.nU = self.degreeU * (len(knotsU) - 1) + 1
-        self.nV = self.degreeV * (len(knotsV) - 1) + 1
         
 
     def set_uniform_lc(self, lc):
-        self.lc = np.ones(self.n) * lc
+        self.lc = np.ones(self.ctrl_points.shape) * lc
 
 
     def is_closed(self):
@@ -203,23 +203,22 @@ class BSplineSurface:
 
     def calculate_point(self, u, v):
         P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
-        n_u = len(self.U) - self.degreeU - 1
-        n_v = len(self.V) - self.degreeV - 1
         
-        i_u = find_span(n_u, self.degreeU, u, self.U)
-        i_v = find_span(n_v, self.degreeV, v, self.V)
+        i_u = find_span(self.nU, self.degreeU, u, self.U)
+        i_v = find_span(self.nV, self.degreeV, v, self.V)
         
         N_u = nurb_basis(i_u, self.degreeU, u, self.U)
         N_v = nurb_basis(i_v, self.degreeV, v, self.V)
 
-        temp = np.zeros((self.degreeV+1, len(P_w[0])))
+        temp = np.zeros((self.degreeV+1, self.dim+1))
         for j in range(self.degreeV + 1):
             ind, no_nonzero_basis = find_inds(i_u, self.degreeU)
-            ind += j * n_u
             for k in range(no_nonzero_basis):
-                temp[j] += P_w[ind + k] * N_u[k]
+                common = self.weights[j][ind + k] * N_u[k]
+                temp[j][-1] += common
+                temp[j][0:-1] += self.ctrl_points[j][ind + k] * common
                 
-        surface = np.zeros(len(P_w[0]))
+        surface = np.zeros(self.dim+1)
         for l in range(self.degreeV + 1):
             surface += N_v[l] * temp[l]
 
@@ -400,7 +399,7 @@ class BSpline3DGeometry:
                 bspline.nU,
                 degreeU = bspline.degreeU,
                 degreeV = bspline.degreeV,
-                weights = bspline.weights, 
+                weights = bspline.weights.flatten(), 
                 knotsU = bspline.knotsU,
                 knotsV = bspline.knotsV,
                 multiplicitiesU = bspline.multiplicitiesU,

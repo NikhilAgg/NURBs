@@ -4,7 +4,9 @@ import sys
 
 def add_bspline_points(factory, curve, point_dict):
         point_tags = []
-        for point, lc_i in zip(curve.ctrl_points, curve.lc):
+
+        ctrl_points = curve.ctrl_points.reshape(-1, curve.dim)
+        for point, lc_i in zip(ctrl_points, curve.lc.flatten()):
             if tuple(point) not in point_dict:
                 tag = factory.addPoint(*point, lc_i)
                 point_dict[tuple(point)] = tag
