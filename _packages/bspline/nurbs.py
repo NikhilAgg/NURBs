@@ -1,12 +1,8 @@
 import numpy as np
 import math
-import gmsh
-import sys
-from .generator_utils import *
-from .gmsh_utils import add_bspline_points
 from itertools import chain
 
-class BSplineCurve:
+class NURBsCurve:
     def __init__(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None, lc=None):
         self.ctrl_points = np.array(ctrl_points)
         self.dim = len(self.ctrl_points[0])
@@ -163,7 +159,7 @@ class BSplineCurve:
 
 
 
-class BSplineSurface:
+class NURBsSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
         self.ctrl_points = np.array(ctrl_points)
         self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.ctrl_points.shape)
@@ -303,130 +299,124 @@ class BSplineSurface:
 
         return A_ders, w_ders
 
-        
+
+def find_inds(i, degree):
+	if i - degree < 0:
+		ind = 0
+		no_nonzero_basis = i + 1
+	else:
+		ind = i - degree
+		no_nonzero_basis = degree + 1
+
+	return ind, no_nonzero_basis
+
+
+def find_span(n, p, u, U):
+	if u < U[0] or u > U[-1]:
+		return -1
+
+	if u == U[n+1]:
+		return n-1
+
+	low = p
+	high = n+1
+	mid = int(np.floor((low + high)/2))
+	while(u < U[mid] or u >= U[mid+1]):
+		if(u < U[mid]):
+			high = mid
+		elif(u >= U[mid]):
+			low = mid
+
+		mid = int(np.floor((low + high)/2))
+
+	return mid
+
+
+def nurb_basis(i, p, u, U):
+	if i < 0 or i >= len(U):
+		return [0] * (p+1)
+
+	left = [0] * (p+1)
+	right = [0] * (p+1)
+	N = [0] * (p+1)
+	
+	N[0] = 1
+	for j in range(1, p+1):
+		left[j] = u - U[i+1-j]
+		right[j] = U[i+j] - u
+
+		saved = 0.0
+		for r in range(j):
+			temp = N[r]/(right[r+1] + left[j-r])
+			N[r] = saved + right[r+1]*temp
+			saved = left[j-r]*temp
+		
+		N[j] = saved
+
+	return N
+
+
+def nurb_basis_derivatives(i, u, p, U, k):
+	ndu = np.zeros((p+1, p+1))
+	left = [0] * (p+1)
+	right = [0] * (p+1)
+
+	ndu[0][0] = 1.0
+
+	for j in range(1, p+1):
+		left[j] = u - U[i+1-j]
+		right[j] = U[i+j] - u
+
+		saved = 0.0
+		for r in range(j):
+			ndu[j][r] = right[r+1] + left[j-r]
+			temp = ndu[r][j-1]/ndu[j][r]
+
+			ndu[r][j] = saved + right[r+1]*temp
+			saved = left[j-r]*temp
+		ndu[j][j] = saved
+
+	ders = np.zeros((k+1, p+1))
+	for j in range(p+1):
+		ders[0][j] = ndu[j][p]
+
+	a = np.zeros((2, p+1))
+	for r in range(p+1):
+		s1 = 0
+		s2 = 1
+		a[0][0] = 1.0
+		for l in range(1, k+1):
+			d = 0.0
+			rl = r-l
+			pl = p-l
+			if r >= l:
+				a[s2][0] = a[s1][0]/ndu[pl+1][rl]
+				d = a[s2][0] * ndu[rl][pl]
+			
+			j1 = 1 if rl >= -1 else -rl
+			j2 = l-1 if r-1 <= pl else p-r
+
+			for j in range(j1, j2+1):
+				a[s2][j] = (a[s1][j] - a[s1][j-1])/ndu[pl+1][rl+j]
+				d += a[s2][j] * ndu[rl+j][pl]
+
+			if r <= pl:
+				a[s2][l] = -a[s1][l-1]/ndu[pl+1][r]
+				d += a[s2][l] * ndu[r][pl]
+
+			ders[l][r] = d
+			j = s1
+			s1 = s2
+			s2 = j
+	
+	r = p
+	for l in range(1, k+1):
+		for j in range(p+1):
+			ders[l][j] *= r
+		r *= p-l
+
+	return ders
 
         
-class BSpline2DGeometry:
-    def __init__(self, outer_bsplines=[], inner_bsplines=[]):
-        self.outer_bsplines = outer_bsplines
-        self.inner_bsplines = inner_bsplines
 
-        self.outer_bspline_tags = []
-        self.innner_bspline_tags = []
-
-        self.point_dict = {}
-
-        #Gmsh
-        self.gmsh = gmsh
-        self.gmsh.initialize()
-        self.model = self.gmsh.model
-        self.factory = self.model.occ
-
-        #TODO Add checks that bsplines are closed, and in the same plane
-
-
-    def create_bspline_curve(self, bsplines):
-        curve_tags = []
-        for bspline in bsplines:
-            point_tags, self.point_dict = add_bspline_points(self.factory, bspline, self.point_dict)
-
-            curve_tag = self.factory.add_bspline(
-                point_tags,
-                -1, 
-                degree = bspline.degree,
-                weights = bspline.weights,
-                knots = bspline.knots,
-                multiplicities = bspline.multiplicities
-            )
-
-            curve_tags.append(curve_tag)
-
-        curveloop_tag = gmsh.model.occ.addCurveLoop(curve_tags)
-            
-        return [curveloop_tag, curve_tags]
-
-
-    def generate_mesh(self, show_mesh=False):
-        self.outer_bspline_tags = self.create_bspline_curve(self.outer_bsplines)
-        outer_curveloop_tag = self.outer_bspline_tags[0]
         
-        self.innner_bspline_tags = []
-        curveloop_tags = []
-        for bspline_list in self.inner_bsplines:
-            bspline_tags = self.create_bspline_curve(bspline_list)
-            
-            curveloop_tags.append(bspline_tags[0])
-            self.innner_bspline_tags.append(bspline_tags)
-        
-        self.surface_tag = self.factory.add_plane_surface([outer_curveloop_tag, *curveloop_tags], 1)
-
-        self.factory.synchronize()
-        self.model.mesh.generate(2)
-
-        if show_mesh and '-nopopup' not in sys.argv:
-            gmsh.fltk.run()
-    
-
-class BSpline3DGeometry:
-    def __init__(self, outer_bsplines=[], inner_bsplines=[]):
-        self.outer_bsplines = outer_bsplines
-        self.inner_bsplines = inner_bsplines
-
-        self.outer_bspline_tags = []
-        self.innner_bspline_tags = []
-
-        self.point_dict = {}
-
-        #Gmsh
-        self.gmsh = gmsh
-        self.gmsh.initialize()
-        self.model = self.gmsh.model
-        self.factory = self.model.occ
-
-        #TODO Add checks that bsplines are closed and curveloop can be made
-        #TODO Fix degenerate bspline case
-
-    
-    def create_bspline_surface(self, bsplines):
-        surface_tags = []
-        for bspline in bsplines:
-            point_tags, self.point_dict = add_bspline_points(self.factory, bspline, self.point_dict)
-
-            surface_tag = self.factory.add_bspline_surface(
-                point_tags,
-                bspline.nU,
-                degreeU = bspline.degreeU,
-                degreeV = bspline.degreeV,
-                weights = bspline.weights.flatten(), 
-                knotsU = bspline.knotsU,
-                knotsV = bspline.knotsV,
-                multiplicitiesU = bspline.multiplicitiesU,
-                multiplicitiesV = bspline.multiplicitiesV
-            )
-            surface_tags.append(surface_tag)
-
-        surfaceloop_tag = self.factory.add_surface_loop(surface_tags)
-
-        return surfaceloop_tag, surface_tags
-
-
-    def generate_mesh(self, show_mesh=False):
-        self.outer_bspline_tags = self.create_bspline_surface(self.outer_bsplines)
-        outer_surfaceloop_tag = self.outer_bspline_tags[0]
-        
-        self.innner_bspline_tags = []
-        surfaceloop_tags = []
-        for bspline_list in self.inner_bsplines:
-            bspline_tags = self.create_bspline_curve(bspline_list)
-            
-            surfaceloop_tags.append(bspline_tags[0])
-            self.innner_bspline_tags.append(bspline_tags)
-        
-        self.volume_tag = self.factory.add_volume([outer_surfaceloop_tag, *surfaceloop_tags], 1)
-
-        self.factory.heal_shapes()
-        self.factory.synchronize()
-        self.model.mesh.generate(3)
-
-        if show_mesh and '-nopopup' not in sys.argv:
-            gmsh.fltk.run()

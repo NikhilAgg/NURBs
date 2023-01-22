@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineSurface
+from bspline.nurbs import NURBsSurface
 from bspline.gmsh_utils import create_bspline_surface_mesh_model
 from bspline.bspline_utils import create_cylinder_bspline_surface
 from pathlib import Path

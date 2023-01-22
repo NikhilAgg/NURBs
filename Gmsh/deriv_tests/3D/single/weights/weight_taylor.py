@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineSurface
+from bspline.nurbs import NURBsSurface
 from bspline.gmsh_utils import create_bspline_volume_mesh_file
 from pathlib import Path
 import numpy as np
@@ -34,7 +34,7 @@ def calc(epsilon, i_der, j_der):
     multiplicitiesU = [3, 2, 2, 2, 3]
     multiplicitiesV = [2, 2]
 
-    cylinder = BSplineSurface(
+    cylinder = NURBsSurface(
         points,
         weights,
         knotsU,
@@ -54,7 +54,7 @@ def calc(epsilon, i_der, j_der):
 
     weights[j_der][i_der] += epsilon
 
-    cylinder = BSplineSurface(
+    cylinder = NURBsSurface(
         points,
         weights,
         knotsU,

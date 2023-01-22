@@ -1,5 +1,5 @@
-from bspline.bspline_curve import BSplineCurve, BSpline2DGeometry
-from bspline.gmsh_utils import create_bspline_curve_mesh_file
+from bspline.nurbs import NURBsCurve
+from bspline.nurbs_geometry import NURBs2DGeometry
 from pathlib import Path
 import os
 
@@ -19,7 +19,7 @@ weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
 knots = [0, 1/4, 1/2, 3/4, 1]
 multiplicities = [2, 2, 2, 2, 2]
 
-circle = BSplineCurve(
+circle = NURBsCurve(
     points,
     weights,
     knots,
@@ -34,5 +34,5 @@ if not os.path.isdir(folder_path + '/meshes'):
 relative_path = "/meshes/circle.msh"
 file_path = folder_path + relative_path
 
-geom = BSpline2DGeometry([circle])
+geom = NURBs2DGeometry([circle])
 geom.generate_mesh(show_mesh=True)

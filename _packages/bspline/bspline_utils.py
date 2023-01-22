@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineCurve, BSplineSurface
+from bspline.nurbs import NURBsCurve, NURBsSurface
 import numpy as np
 
 def get_unit_normals(normal):
@@ -41,7 +41,7 @@ def create_circle_bspline_curve(r=1, O=[0, 0, 0], normal=[0, 0, 1]):
     knots = [0, 1/4, 1/2, 3/4, 1]
     multiplicities = [2, 2, 2, 2, 2]
 
-    circle = BSplineCurve(
+    circle = NURBsCurve(
         points,
         weights,
         knots,
@@ -63,7 +63,7 @@ def create_prism_bspline_surface(curve, L, nL):
     knotsV = [i for i in range(nL+1)]
     multiplicitiesV = [2, *[1]*(nL-1), 2]
     
-    surface = BSplineSurface(
+    surface = NURBsSurface(
         points,
         np.tile(curve.weights, nL+1),
         curve.knots,

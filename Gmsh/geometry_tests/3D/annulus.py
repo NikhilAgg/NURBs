@@ -1,5 +1,5 @@
-from bspline.bspline_curve import BSplineSurface, BSpline3DGeometry, BSplineCurve, BSpline2DGeometry
-from bspline.gmsh_utils import create_bspline_volume_mesh_file
+from bspline.nurbs_geometry import NURBs3DGeometry
+from bspline.nurbs import NURBsSurface
 from pathlib import Path
 import os
 
@@ -30,7 +30,7 @@ knotsV = [0, 1]
 multiplicitiesU = [2, 2, 2, 2, 2]
 multiplicitiesV = [2, 2]
 
-cylinder = BSplineSurface(
+cylinder = NURBsSurface(
     points,
     weights,
     knotsU,
@@ -62,7 +62,7 @@ points = [
     [0.5, -0.5, 1],
     [0.5, 0, 1]]
 ]
-inner_cylinder = BSplineSurface(
+inner_cylinder = NURBsSurface(
     points,
     weights,
     knotsU,
@@ -95,7 +95,7 @@ points = [
     [0.5, 0, 0]]
 ]
 
-start = BSplineSurface(
+start = NURBsSurface(
     points,
     weights,
     knotsU,
@@ -128,7 +128,7 @@ points = [[
     [0.5, 0, 1]]
 ]
 
-end = BSplineSurface(
+end = NURBsSurface(
     points,
     weights,
     knotsU,
@@ -140,5 +140,5 @@ end = BSplineSurface(
 )
 end.set_uniform_lc(1e-2)
 
-geom = BSpline3DGeometry([start, cylinder, end])
+geom = NURBs3DGeometry([start, cylinder, end])
 geom.generate_mesh(show_mesh=True)

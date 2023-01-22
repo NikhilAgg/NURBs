@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineCurve
+from bspline.nurbs import NURBsCurve
 from bspline.gmsh_utils import create_bspline_curve_mesh_model
 from bspline.bspline_utils import create_circle_bspline_curve
 from pathlib import Path

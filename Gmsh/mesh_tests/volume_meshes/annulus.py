@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineSurface
+from bspline.nurbs import NURBsSurface
 from bspline.gmsh_utils import create_bspline_volume_mesh_file
 from pathlib import Path
 import os
@@ -30,7 +30,7 @@ knotsV = [0, 1]
 multiplicitiesU = [2, 2, 2, 2, 2]
 multiplicitiesV = [2, 2]
 
-plane = BSplineSurface(
+plane = NURBsSurface(
     points,
     weights,
     knotsU,
@@ -68,7 +68,7 @@ knotsV = [0, 1]
 multiplicitiesU = [2, 2, 2, 2, 2]
 multiplicitiesV = [2, 2]
 
-plane2 = BSplineSurface(
+plane2 = NURBsSurface(
     points,
     weights,
     knotsU,

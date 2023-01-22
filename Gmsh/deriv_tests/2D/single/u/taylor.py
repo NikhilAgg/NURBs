@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineCurve
+from bspline.nurbs import NURBsCurve
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,7 +19,7 @@ def calc(u, order):
     knots = [0, 1/4, 1/2, 3/4, 1]
     multiplicities = [3, 2, 2, 2, 3]
 
-    circle = BSplineCurve(
+    circle = NURBsCurve(
         points,
         weights,
         knots,

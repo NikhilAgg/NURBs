@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineSurface
+from bspline.nurbs import NURBsSurface
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -30,7 +30,7 @@ def calc(u, v, order):
     multiplicitiesU = [3, 2, 2, 2, 3]
     multiplicitiesV = [2, 2]
 
-    cylinder = BSplineSurface(
+    cylinder = NURBsSurface(
         points,
         weights,
         knotsU,

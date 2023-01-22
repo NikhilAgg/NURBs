@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineCurve, BSpline2DGeometry
+from bspline.nurbs import NURBsCurve, NURBs2DGeometry
 from bspline.gmsh_utils import create_bspline_curve_mesh_file
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
 knots = [0, 1/4, 1/2, 3/4, 1]
 multiplicities = [3, 2, 2, 2, 3]
 
-circle = BSplineCurve(
+circle = NURBsCurve(
     points,
     weights,
     knots,

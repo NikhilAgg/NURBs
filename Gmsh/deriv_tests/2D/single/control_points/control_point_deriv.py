@@ -1,4 +1,4 @@
-from bspline.bspline_curve import BSplineCurve
+from bspline.nurbs import NURBsCurve
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -21,7 +21,7 @@ weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
 knots = [0, 1/4, 1/2, 3/4, 1]
 multiplicities = [3, 2, 2, 2, 3]
 
-circle = BSplineCurve(
+circle = NURBsCurve(
     points,
     weights,
     knots,
@@ -53,7 +53,7 @@ points = np.array([
 for i in range(3):
 	points[ind_der, i] += epsilon[0][i]
 
-circle = BSplineCurve(
+circle = NURBsCurve(
     points,
     weights,
     knots,
