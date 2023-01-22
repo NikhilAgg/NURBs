@@ -201,9 +201,7 @@ class BSplineSurface:
         return is_closed
 
 
-    def calculate_point(self, u, v):
-        P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
-        
+    def calculate_point(self, u, v):       
         i_u = find_span(self.nU, self.degreeU, u, self.U)
         i_v = find_span(self.nV, self.degreeV, v, self.V)
         
@@ -241,13 +239,13 @@ class BSplineSurface:
         ind_u, _ = find_inds(i_u, self.degreeU)
         for k in range(len(N_v)):
             for l in range(len(N_u)):
-                common = N_v[k] * N_u[l] * self.weights[(ind_v + k) * self.nU + (ind_u + l)]
+                common = N_v[k] * N_u[l] * self.weights[ind_v + k][ind_u + l]
                 denom += common
-                numerator_sum += common * self.ctrl_points[(ind_v + k) * self.nU + (ind_u + l)]
+                numerator_sum += common * self.ctrl_points[ind_v + k][ind_u + l]
 
-        deriv_wrt_point = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.weights[j_deriv * self.nU + i_deriv]) / denom
+        deriv_wrt_point = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.weights[j_deriv][i_deriv]) / denom
         
-        deriv_wrt_weight = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.ctrl_points[j_deriv * self.nU + i_deriv]) / denom - \
+        deriv_wrt_weight = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.ctrl_points[j_deriv][i_deriv]) / denom - \
                             (numerator_sum * N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV])/denom**2
         
         return [deriv_wrt_point, deriv_wrt_weight]

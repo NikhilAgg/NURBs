@@ -8,7 +8,7 @@ import os
 
 def calc(epsilon, i_der, j_der):
     points = [
-        [1, 0, 0],
+        [[1, 0, 0],
         [1, 1, 0],
         [0, 1, 0],
         [-1, 1, 0],
@@ -16,8 +16,8 @@ def calc(epsilon, i_der, j_der):
         [-1, -1, 0],
         [0, -1, 0],
         [1, -1, 0],
-        [1, 0, 0],
-        [1, 0, 1],
+        [1, 0, 0]],
+        [[1, 0, 1],
         [1, 1, 1],
         [0, 1, 1],
         [-1, 1, 1],
@@ -25,10 +25,10 @@ def calc(epsilon, i_der, j_der):
         [-1, -1, 1],
         [0, -1, 1],
         [1, -1, 1],
-        [1, 0, 1]
+        [1, 0, 1]]
     ]
 
-    weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
+    weights = [[1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1], [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]]
     knotsU = [0, 1/4, 1/2, 3/4, 1]
     knotsV = [0, 1]
     multiplicitiesU = [3, 2, 2, 2, 3]
@@ -52,7 +52,7 @@ def calc(epsilon, i_der, j_der):
     dy = np.array([cylinder.derivative_wrt_ctrl_point(i_der, j_der, u, v)[1] for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
     der = y + dy * epsilon
 
-    weights[j_der * cylinder.nU + i_der] += epsilon
+    weights[j_der][i_der] += epsilon
 
     cylinder = BSplineSurface(
         points,
