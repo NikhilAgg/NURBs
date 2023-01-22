@@ -8,27 +8,21 @@ epsilon = 0.2
 ind_der = 3
 
 points = [
-    [1, 0, 0],
-    [1, 1, 0],
-    [0, 1, 0],
-    [-1, 1, 0],
-    [-1, 0, 0],
-    [-1, -1, 0],
-    [0, -1, 0],
-    [1, -1, 0],
-    [1, 0, 0]
+    [0, 0],
+    [1, 0],
+    [2, 0]
 ]
 
-weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
-knots = [0, 1/4, 1/2, 3/4, 1]
-multiplicities = [3, 2, 2, 2, 3]
+weights = [1, 1, 1]
+knots = [0, 1/2, 1]
+multiplicities = [2, 1, 2]
 
 circle = BSplineCurve(
     points,
     weights,
     knots,
     multiplicities,
-    2
+    1
 )
 circle.set_uniform_lc(1e-2)
 

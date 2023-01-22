@@ -71,6 +71,28 @@ class BSplineCurve:
         return curve[:-1]/curve[-1]
 
 
+    def derivative_wrt_u(self, u, k):
+        A_ders = np.zeros((k+1, self.dim))
+        w_ders = np.zeros(k+1)
+        ders = np.zeros((k+1, self.dim))
+
+        i = find_span(self.n, self.degree, u, self.U)
+        N_ders = nurb_basis_derivatives(i, u, self.degree, self.U, k)
+        for l in range(min(k, self.degree) + 1):
+            for j in range(self.degree + 1): #Requires clamped start
+                temp = N_ders[l][j] * self.weights[i - self.degree + j]
+                w_ders[l] += temp
+                A_ders[l] += temp * self.ctrl_points[i - self.degree + j]
+
+        for l in range(k + 1):
+            v = A_ders[l]
+            for i in range(1, l+1):
+                v -= math.comb(l, i) * w_ders[i] * ders[l - i]
+            ders[l] = v/w_ders[0]
+
+        return ders
+
+
     def derivative_wrt_knot(self, n_deriv, u):
         i = find_span(self.n, self.degree, u, self.U)
 
@@ -122,27 +144,6 @@ class BSplineCurve:
         deriv = first_numerator / denom - (second_numerator * second_numerator_sum) / denom**2
 
         return deriv
-
-    def derivative_wrt_u(self, u, k):
-        A_ders = np.zeros((k+1, self.dim))
-        w_ders = np.zeros(k+1)
-        ders = np.zeros((k+1, self.dim))
-
-        i = find_span(self.n, self.degree, u, self.U)
-        N_ders = nurb_basis_derivatives(i, u, self.degree, self.U, k)
-        for l in range(min(k, self.degree) + 1):
-            for j in range(self.degree + 1): #Requires clamped start
-                temp = N_ders[l][j] * self.weights[i - self.degree + j]
-                w_ders[l] += temp
-                A_ders[l] += temp * self.ctrl_points[i - self.degree + j]
-
-        for l in range(k + 1):
-            v = A_ders[l]
-            for i in range(1, l+1):
-                v -= math.comb(l, i) * w_ders[i] * ders[l - i]
-            ders[l] = v/w_ders[0]
-
-        return ders
                 
 
     def plot_nurb(self, u, i, U):
@@ -159,48 +160,6 @@ class BSplineCurve:
                 return N[k]
         
         return 0
-
-    
-
-
-    
-    # def derivative_wrt_knot(self, n_deriv, u):
-    #     i = find_span(self.n, self.degree, u, self.U)
-
-    #     i_deriv_left = sum(self.multiplicities[0:n_deriv])-1
-    #     i_deriv_right = i_deriv_left + self.multiplicities[n_deriv]
-    #     if i < i_deriv_right - self.degree - 1 or i > i_deriv_right + self.degree:
-    #         return np.array([0, 0, 0])
-
-    #     N = nurb_basis(i, self.degree, u, self.U)
-    #     ind, _ = find_inds(i, self.degree)
-    #     curve = 0.0
-    #     denom = 0.0
-    #     for k in range(len(N)):
-    #         denom += N[k] * self.weights[ind + k]
-    #         curve += N[k] * self.weights[ind + k] * self.ctrl_points[ind + k]
-
-    #     U_bar = self.U.copy()
-    #     U_bar.insert(i_deriv_right, self.U[i_deriv_right]) #A copy of the knot vector but with the i_deriv th knot repeated one more time
-
-    #     if u > self.U[i_deriv_right]:
-    #         i = i+1
-
-    #     N_bar = nurb_basis(i, self.degree, u, U_bar)
-
-    #     ind, _ = find_inds(i, self.degree)
-    #     curve_r = 0.0
-    #     denom_r = 0.0
-    #     for k in range(len(N_bar)):
-    #         if ind + k > i_deriv_right - self.degree
-    #         knot_denom = self.U[ind + k + self.degree] - self.U[ind + k]
-    #         point = self.ctrl_points[ind + k - 1] - self.ctrl_points[ind + k]
-    #         weight = self.weights[ind + k - 1] - self.weights[ind + k]
-
-    #         curve_r += N_bar[k] * point * weight / knot_denom**2
-    #         denom_r += N_bar[k] * weight / knot_denom
-
-    #     return curve_r / denom - curve * denom_r / denom**2
 
 
 

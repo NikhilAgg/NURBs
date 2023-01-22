@@ -45,13 +45,13 @@ y_tay = []
 x_tay = []
 
 ep_step = 0.01
-u = 0.5
+u = 0.7
 order = 2
 coord = np.array([[0, 1, 0]])
 
-y_orig, dy = calc(u, order=2)
+y_orig, dy = calc(u, order)
 
-for k in range(7):
+for k in range(10):
     epsilon = ep_step * k
     y = calc(u+epsilon, order)[0]
     der = get_der(y_orig, dy, epsilon)
