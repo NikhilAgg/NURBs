@@ -108,12 +108,10 @@ class NURBsCurve:
     
     def get_curvature(self, u):
         ders = self.derivative_wrt_u(u, 2)
-        dx = ders[1][0]
-        dy = ders[1][1]
-        d2x = ders[2][0]
-        d2y = ders[2][1]
+        dC = ders[1]
+        d2C = ders[2]
 
-        curvature = (dx * d2y - dy * d2x) / (dx**2 + dy**2)**(3/2)
+        curvature = np.linalg.norm(np.cross(dC, d2C)) / np.linalg.norm(dC)**3
         return curvature
 
 
