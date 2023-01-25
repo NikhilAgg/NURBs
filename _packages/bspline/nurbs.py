@@ -16,6 +16,9 @@ class NURBsCurve:
         self.degree = degree
         self.lc = lc
 
+        #Other
+        self.ctrl_point_dict = {}
+
         #TODO FIX U DIFFERENCE AND PERIODIC SPLINES
         #TODO ADD CHECKS
         
@@ -121,6 +124,14 @@ class NURBsCurve:
         unit_norm = self.get_unit_normal(u, flip=flip)
 
         return np.dot(der, unit_norm)
+
+
+    def create_ctrl_point_dict(self):
+        for i, point in enumerate(self.ctrl_points):
+            if tuple(point) in self.ctrl_points_dict:
+                self.ctrl_points_dict.append(i)
+            else:
+                self.ctrl_points_dict[point] = [i]
         
 
     def derivative_wrt_knot(self, n_deriv, u):
@@ -212,6 +223,9 @@ class NURBsSurface:
         self.degreeU = degreeU
         self.degreeV = degreeV
         self.lc = lc
+
+        #Other
+        self.ctrl_points_dict = {}
         
 
     def set_uniform_lc(self, lc):
@@ -333,6 +347,15 @@ class NURBsSurface:
         unit_norm = self.get_unit_normal(u, v, flip=flip)
 
         return np.dot(der, unit_norm)
+
+    
+    def create_ctrl_point_dict(self):
+        for i, row in enumerate(self.ctrl_points):
+            for j, point in enumerate(row):
+                if tuple(point) in self.ctrl_points_dict:
+                    self.ctrl_points_dict.append((i, j))
+                else:
+                    self.ctrl_points_dict[point] = [(i, j)]
 
 
     def calculate_num_and_den_derivatives(self, u, v, k):
