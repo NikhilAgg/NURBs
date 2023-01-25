@@ -28,6 +28,21 @@ class NURBsCurve:
         return np.all(self.ctrl_points[0] == self.ctrl_points[-1])
 
 
+    def calculate_point(self, u):
+        P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
+
+        i = find_span(self.n, self.degree, u, self.U)
+        N = nurb_basis(i, self.degree, u, self.U)
+
+        curve = np.zeros(len(P_w[0]))
+
+        ind, no_nonzero_basis = find_inds(i, self.degree)
+        for k in range(no_nonzero_basis):
+            curve += P_w[ind + k] * N[k]
+
+        return curve[:-1]/curve[-1]
+
+
     def derivative_wrt_ctrl_point(self, i_deriv, u):
         i = find_span(self.n, self.degree, u, self.U)
 
@@ -52,21 +67,6 @@ class NURBsCurve:
         return [deriv_wrt_point, deriv_wrt_weight]
 
 
-    def calculate_point(self, u):
-        P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
-
-        i = find_span(self.n, self.degree, u, self.U)
-        N = nurb_basis(i, self.degree, u, self.U)
-
-        curve = np.zeros(len(P_w[0]))
-
-        ind, no_nonzero_basis = find_inds(i, self.degree)
-        for k in range(no_nonzero_basis):
-            curve += P_w[ind + k] * N[k]
-
-        return curve[:-1]/curve[-1]
-
-
     def derivative_wrt_u(self, u, k):
         A_ders = np.zeros((k+1, self.dim))
         w_ders = np.zeros(k+1)
@@ -88,6 +88,40 @@ class NURBsCurve:
 
         return ders
 
+    
+    def get_unit_normal(self, u, flip=False):
+        dC = self.derivative_wrt_u(u, 1)[1]
+        dC_hat = dC / np.linalg.norm(dC)
+
+        temp = dC_hat[0]
+        dC_hat[0] = -dC_hat[1]
+        dC_hat[1] = temp
+
+        if flip:
+            dC_hat *= -1
+
+        return dC_hat
+
+    
+    def get_curvature(self, u):
+        return self.derivative_wrt_u(u, 2)[2]
+
+
+    def get_displacement_field(self, u, i_deriv, param, flip=False):
+        if param == "control point":
+            magnitude = self.derivative_wrt_ctrl_point(self, i_deriv, u)[0]
+            der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+        elif param == "weight":
+            der = self.derivative_wrt_ctrl_point(self, i_deriv, u)[1]
+        elif param == "knot":
+            raise NameError("Not implemented")
+        else:
+            raise NameError(f"No param called {param}")
+
+        unit_norm = self.get_unit_normal(u, flip=flip)
+
+        return np.dot(der, unit_norm)
+        
 
     def derivative_wrt_knot(self, n_deriv, u):
         i = find_span(self.n, self.degree, u, self.U)
@@ -267,6 +301,38 @@ class NURBsSurface:
                 ders[l][m] = v/w_ders[0][0]
 
         return ders
+
+    
+    def get_unit_normal(self, u, v, flip=False):
+        ders = self.derivative_wrt_uv(u, v, 1)
+        norm = np.cross(ders[1][0], ders[0, 1])
+        unit_norm = norm / np.linalg.norm(norm)
+
+        if flip:
+            unit_norm *= -1
+
+        return unit_norm
+
+
+    def get_curvature_field(self, u, v):
+        raise NameError("Not implemented")
+        return 
+
+    
+    def get_displacement_field(self, u, v, i_deriv, j_deriv, param, flip=False):
+        if param == "control point":
+            magnitude = self.derivative_wrt_ctrl_point(self, i_deriv, j_deriv, u, v)[0]
+            der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+        elif param == "weight":
+            der = self.derivative_wrt_ctrl_point(self, i_deriv, j_deriv, u, v)[1]
+        elif param == "knot":
+            raise NameError("Not implemented")
+        else:
+            raise NameError(f"No param called {param}")
+
+        unit_norm = self.get_unit_normal(u, v, flip=flip)
+
+        return np.dot(der, unit_norm)
 
 
     def calculate_num_and_den_derivatives(self, u, v, k):

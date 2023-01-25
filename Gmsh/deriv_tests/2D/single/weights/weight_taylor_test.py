@@ -62,7 +62,7 @@ for k in range(5):
     y, der = calc(epsilon, ind_der)
     error = 0
     for i in range(len(y)):
-        error += np.linalg.norm(y[i] - der[i])**2
+        error += np.linalg.norm(y[i] - der[i])
 
     y_tay.append(error)
     x_tay.append(epsilon**2)

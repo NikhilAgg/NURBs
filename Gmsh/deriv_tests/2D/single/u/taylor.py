@@ -46,7 +46,7 @@ x_tay = []
 
 ep_step = 0.01
 u = 0.7
-order = 2
+order = 1
 coord = np.array([[0, 1, 0]])
 
 y_orig, dy = calc(u, order)
@@ -57,7 +57,7 @@ for k in range(10):
     der = get_der(y_orig, dy, epsilon)
     error = 0
     for i in range(len(y)):
-        error += np.linalg.norm(y[i] - der[i])**2
+        error += np.linalg.norm(y[i] - der[i])
 
     y_tay.append(error)
     x_tay.append(epsilon**(order+1))
