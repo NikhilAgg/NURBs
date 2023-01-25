@@ -107,7 +107,14 @@ class NURBsCurve:
 
     
     def get_curvature(self, u):
-        return self.derivative_wrt_u(u, 2)[2]
+        ders = self.derivative_wrt_u(u, 2)
+        dx = ders[1][0]
+        dy = ders[1][1]
+        d2x = ders[2][0]
+        d2y = ders[2][1]
+
+        curvature = (dx * d2y - dy * d2x) / (dx**2 + dy**2)**(3/2)
+        return curvature
 
 
     def get_displacement_field(self, u, i_deriv, param, flip=False):

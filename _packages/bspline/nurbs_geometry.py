@@ -1,8 +1,10 @@
 import gmsh
 import sys
+import numpy as np
 from dolfinx.io import gmshio
 from mpi4py import MPI
 from dolfinx import fem
+from scipy.interpolate import LinearNDInterpolator
 
 class NURBsGeometry:
     def __init__(self, bsplines = []):

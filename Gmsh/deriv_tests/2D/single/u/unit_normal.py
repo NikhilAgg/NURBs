@@ -1,8 +1,6 @@
-from bspline.nurbs import NURBsCurve, NURBs2DGeometry
-from bspline.gmsh_utils import create_bspline_curve_mesh_file
+from bspline.nurbs import NURBsCurve
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 epsilon = 0.1
 ind_der = 3
@@ -54,8 +52,8 @@ t = np.linspace(0, 1, 100)
 dt = np.linspace(0, 1, 30)
 y = np.array([circle.calculate_point(u) for u in t])
 arrow_y = np.array([circle.calculate_point(u) for u in dt])
-dy = np.array([circle.derivative_wrt_u(u, 1)[1] for u in dt])
+dy = np.array([circle.get_unit_normal(u) for u in dt])
 
 plt.plot(y[:, 0], y[:, 1], label = "Original")
-plt.quiver(arrow_y[:, 0], arrow_y[:, 1], -dy[:, 1], dy[:, 0])
+plt.quiver(arrow_y[:, 0], arrow_y[:, 1], dy[:, 0], dy[:, 1])
 plt.show()

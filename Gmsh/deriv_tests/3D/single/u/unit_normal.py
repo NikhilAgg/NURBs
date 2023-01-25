@@ -66,12 +66,13 @@ y = np.array([cylinder.calculate_point(u, v) for u, v in np.array(np.meshgrid(t,
 
 dt = np.linspace(0, 1, 10)
 ds = np.linspace(0, 1, 10)
+
 dy = []
 arrow_y = []
 for u, v in np.array(np.meshgrid(dt, ds)).T.reshape(-1,2):
     ders = cylinder.derivative_wrt_uv(u, v, 1)
     arrow_y.append(ders[0][0])
-    dy.append(np.cross(ders[1][0], ders[0, 1]))
+    dy.append(cylinder.get_unit_normal(u, v))
 
 arrow_y = np.array(arrow_y)
 dy = np.array(dy)
@@ -82,7 +83,7 @@ ax.scatter3D(y[:, 0], y[:, 1], y[:, 2], 'b')
 
 arrow_prop_dict = dict(mutation_scale=20, arrowstyle='-|>', color='k', shrinkA=0, shrinkB=0)
 for i in range(len(dy)):
-    a = Arrow3D([arrow_y[i, 0], arrow_y[i, 0] + dy[i,0]/10], [arrow_y[i, 1], arrow_y[i, 1] + dy[i,1]/10], [arrow_y[i, 2], arrow_y[i, 2] + dy[i,2]/10], **arrow_prop_dict)
+    a = Arrow3D([arrow_y[i, 0], arrow_y[i, 0] + dy[i,0]], [arrow_y[i, 1], arrow_y[i, 1] + dy[i,1]], [arrow_y[i, 2], arrow_y[i, 2] + dy[i,2]], **arrow_prop_dict)
     ax.add_artist(a)
 
 plt.show()
