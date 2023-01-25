@@ -169,7 +169,7 @@ class NURBs3DGeometry(NURBsGeometry):
             gmsh.fltk.run()
 
 
-    def create_ctrl_point_lookup(self):
+    def create_ctrl_point_dict(self):
         for i, bspline_list in enumerate(self.bsplines):
             for j, nurb in enumerate(bspline_list):
                 for point in nurb.ctrl_points.reshape(-1, nurb.dim):
