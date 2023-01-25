@@ -59,5 +59,5 @@ if not os.path.isdir(folder_path + '/meshes'):
 relative_path = "/meshes/donut.msh"
 file_path = folder_path + relative_path
 
-geom = NURBs2DGeometry([circle], [[circle2]])
+geom = NURBs2DGeometry([[circle], [circle2]])
 geom.generate_mesh(show_mesh=True)

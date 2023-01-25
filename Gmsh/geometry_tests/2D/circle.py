@@ -34,5 +34,5 @@ if not os.path.isdir(folder_path + '/meshes'):
 relative_path = "/meshes/circle.msh"
 file_path = folder_path + relative_path
 
-geom = NURBs2DGeometry([circle])
+geom = NURBs2DGeometry([[circle]])
 geom.generate_mesh(show_mesh=True)

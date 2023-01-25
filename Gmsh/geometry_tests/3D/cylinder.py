@@ -1,4 +1,4 @@
-from bspline.nurbs import NURBsSurface, NURBs3DGeometry
+from bspline.nurbs import NURBsSurface
 from bspline.nurbs_geometry import NURBs3DGeometry
 
 points = [
@@ -106,5 +106,5 @@ end = NURBsSurface(
 )
 end.set_uniform_lc(1e-2)
 
-geom = NURBs3DGeometry([start, cylinder, end])
+geom = NURBs3DGeometry([[start, cylinder, end]])
 geom.generate_mesh(show_mesh=True)

@@ -140,5 +140,5 @@ end = NURBsSurface(
 )
 end.set_uniform_lc(1e-2)
 
-geom = NURBs3DGeometry([start, cylinder, end])
+geom = NURBs3DGeometry([[start, cylinder, end]])
 geom.generate_mesh(show_mesh=True)
