@@ -168,3 +168,13 @@ class NURBs3DGeometry(NURBsGeometry):
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()
 
+
+    def create_ctrl_point_lookup(self):
+        for i, bspline_list in enumerate(self.bsplines):
+            for j, nurb in enumerate(bspline_list):
+                for point in nurb.ctrl_points.reshape(-1, nurb.dim):
+                    if tuple(point) in self.ctrl_point_dict:
+                        self.ctrl_point_dict[tuple(point)].add((i, j))
+                    else:
+                        self.ctrl_point_dict[tuple(point)] = set([(i, j)])
+
