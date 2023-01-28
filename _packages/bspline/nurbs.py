@@ -106,16 +106,21 @@ class NURBsCurve:
         return dC_hat
 
     
-    def get_curvature(self, u):
+    def get_curvature(self, u, flip=False):
         ders = self.derivative_wrt_u(u, 2)
         dC = ders[1]
         d2C = ders[2]
 
         curvature = np.linalg.norm(np.cross(dC, d2C)) / np.linalg.norm(dC)**3
+
+        if flip:
+            curvature *= -1
+
         return curvature
 
 
     def get_displacement_field(self, u, i_deriv, param, flip=False):
+        
         if param == "control point":
             magnitude = self.derivative_wrt_ctrl_point(self, i_deriv, u)[0]
             der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
@@ -324,7 +329,7 @@ class NURBsSurface:
     
     def get_unit_normal(self, u, v, flip=False):
         ders = self.derivative_wrt_uv(u, v, 1)
-        norm = np.cross(ders[1][0], ders[0, 1])
+        norm = np.cross(ders[1][0], ders[0][1])
         unit_norm = norm / np.linalg.norm(norm)
 
         if flip:
@@ -333,9 +338,54 @@ class NURBsSurface:
         return unit_norm
 
 
-    def get_curvature_field(self, u, v):
-        raise NameError("Not implemented")
-        return 
+    def get_unit_normal_derivatives(self, ders):
+        dS_du = ders[1][0]
+        dS_dv = ders[0][1]
+        d2S_du2 = ders[2][0]
+        d2S_dv2 = ders[0][2]
+        d2S_dudv = ders[1][1]
+
+        nh = np.cross(dS_du, dS_dv)
+        nh_mag = np.linalg.norm(nh)
+        n = nh/nh_mag
+
+        dnh_du = np.cross(d2S_du2, dS_dv) + np.cross(dS_du, d2S_dudv)
+        dnh_dv = np.cross(d2S_dudv, dS_dv) + np.cross(dS_du, d2S_dv2)
+
+        dnh_mag_du = np.dot(n, dnh_du)/nh_mag
+        dnh_mag_dv = np.dot(n, dnh_dv)/nh_mag
+
+        dn_du = (dnh_du * nh_mag - nh * dnh_mag_du) / nh_mag**2
+        dn_dv = (dnh_dv * nh_mag - nh * dnh_mag_dv) / nh_mag**2
+
+        return [dn_du, dn_dv]
+
+
+    def get_curvature(self, u, v, flip=False):
+        ders = self.derivative_wrt_uv(u, v, 2)
+        dn_du, dn_dv = self.get_unit_normal_derivatives(ders)
+
+        dS_du = ders[1][0]
+        dS_dv = ders[0][1]
+
+        eu = dS_du / np.linalg.norm(dS_du)
+        ev = dS_dv / np.linalg.norm(dS_dv)
+
+        ev_perp = (eu - np.dot(eu, ev)*ev)
+        ev_perp /= np.linalg.norm(ev_perp)
+
+        eu_perp = (ev - np.dot(ev, eu)*eu)
+        eu_perp /= np.linalg.norm(eu_perp)
+
+
+        curvature = np.dot(dn_du, np.linalg.norm(dS_dv)*ev_perp) + \
+                    np.dot(dn_dv, np.linalg.norm(dS_du)*eu_perp)
+        curvature /= np.linalg.norm(np.cross(dS_du, dS_dv))
+
+        if flip:
+            curvature *= -1
+        
+        return curvature
 
     
     def get_displacement_field(self, u, v, i_deriv, j_deriv, param, flip=False):

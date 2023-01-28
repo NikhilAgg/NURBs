@@ -2,16 +2,17 @@ from bspline.nurbs import NURBsCurve
 import numpy as np
 import matplotlib.pyplot as plt
 
+r = 1
 points = [
-    [5, 0],
-    [5, 5],
-    [0, 5],
-    [-5, 5],
-    [-5, 0],
-    [-5, -5],
-    [0, -5],
-    [5, -5],
-    [5, 0]
+    [r, 0],
+    [r, r],
+    [0, r],
+    [-r, r],
+    [-r, 0],
+    [-r, -r],
+    [0, -r],
+    [r, -r],
+    [r, 0]
 ]
 
 weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
