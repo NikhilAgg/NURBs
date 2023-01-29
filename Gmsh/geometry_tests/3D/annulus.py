@@ -40,7 +40,7 @@ cylinder = NURBsSurface(
     degreeU = 2,
     degreeV = 1
 )
-cylinder.set_uniform_lc(1e-2)
+cylinder.set_uniform_lc(1e-1)
 
 points = [
     [[0.5, 0, 0],
@@ -72,7 +72,7 @@ inner_cylinder = NURBsSurface(
     degreeU = 2,
     degreeV = 1
 )
-inner_cylinder.set_uniform_lc(1e-2)
+inner_cylinder.set_uniform_lc(1e-1)
 
 points = [
     [[1, 0, 0],
@@ -105,7 +105,7 @@ start = NURBsSurface(
     degreeU = 2,
     degreeV = 1
 )
-start.set_uniform_lc(1e-2)
+start.set_uniform_lc(1e-1)
 
 points = [[
     [1, 0, 1],
@@ -138,7 +138,11 @@ end = NURBsSurface(
     degreeU = 2,
     degreeV = 1
 )
-end.set_uniform_lc(1e-2)
+end.set_uniform_lc(1e-1)
 
-geom = NURBs3DGeometry([[start, cylinder, end]])
-geom.generate_mesh(show_mesh=True)
+geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
+geom.generate_mesh(show_mesh=False)
+geom.add_bspline_groups([[1, 2, 3, 4]])
+geom.model_to_fenics()
+geom.create_function_space('Lagrange', 2)
+geom.create_u_function_space()

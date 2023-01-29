@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from dolfinx.io import gmshio
 from mpi4py import MPI
-from dolfinx import fem
+from dolfinx import fem, mesh
 from scipy.interpolate import LinearNDInterpolator
 
 class NURBsGeometry:
@@ -21,6 +21,7 @@ class NURBsGeometry:
         self.gmsh.initialize()
         self.model = self.gmsh.model
         self.factory = self.model.occ
+        self.node_to_params = {}
 
         #Fenics
         self.V = None
@@ -47,8 +48,9 @@ class NURBsGeometry:
         self.bspline_groups = bspline_groups
 
         if self.bspline_groups != []:
-            for tag, group in zip(self.bspline_tags.flatten(), bspline_groups.flatten()):
-                self.model.addPhysicalGroup(self.dim-1, [tag], group)
+            for i, row in enumerate(bspline_groups):
+                for j, group in enumerate(row):
+                    self.model.addPhysicalGroup(self.dim-1, [self.bspline_tags[i][1][j]], group)
 
         if group_names:
             for tag, name in group_names:
@@ -56,7 +58,8 @@ class NURBsGeometry:
                 
 
     def model_to_fenics(self, comm=MPI.COMM_WORLD, rank=0):
-        self.msh, self.cell_markers, self.facet_markers = gmshio.model_to_mesh(self.model, comm, rank, self.dim)
+        self.model.mesh.generate(self.dim)
+        self.msh, self.cell_markers, self.facet_markers = gmshio.model_to_mesh(self.model, comm, rank)
 
 
     def create_function_space(self, cell_type, degree):
@@ -64,9 +67,75 @@ class NURBsGeometry:
             print("Geometry has no fenics msh. Run model_to_fenics to create a msh")
             return
 
+        self.cell_type = cell_type
+        self.degree = degree
         self.V = fem.FunctionSpace(self.msh, (cell_type, degree))
 
         return self.V
+
+    
+    def create_node_to_param_map(self):
+        self.Vu = fem.FunctionSpace(self.msh, (self.cell_type, 1))
+        dof_layout = self.Vu.dofmap.dof_layout
+        coords = self.Vu.tabulate_dof_coordinates()
+
+        self.msh.topology.create_connectivity(self.msh.topology.dim-1, self.msh.topology.dim)
+        boundary_facets = mesh.exterior_facet_indices(self.msh.topology)
+        f_to_c = self.msh.topology.connectivity(self.msh.topology.dim-1, self.msh.topology.dim)
+        c_to_f = self.msh.topology.connectivity(self.msh.topology.dim, self.msh.topology.dim-1)
+
+        for facet in boundary_facets:
+            cells = f_to_c.links(facet)
+            facets = c_to_f.links(cells[0])
+            local_index = np.flatnonzero(facets == facet)
+
+            closure_dofs = dof_layout.entity_closure_dofs(
+                                self.msh.topology.dim-1,  local_index)
+            cell_dofs = self.Vu.dofmap.cell_dofs(cells[0])
+
+            for dof in closure_dofs:
+                local_dof = cell_dofs[dof]
+                dof_coordinate = coords[local_dof]
+                self.get_bspline_params_from_coord(dof_coordinate)
+
+    
+    def get_bspline_params_from_coord(self, coord):
+        for i, row in enumerate(self.bspline_tags):
+            for j, tag in enumerate(row[1]):
+                if not self.is_coord_on_bspline(coord, tag):
+                    continue
+                
+                params = self.model.getParametrization(self.dim-1, tag, coord)
+                self.add_params_to_map(coord, [i, j], params)
+                
+
+    def add_params_to_map(self, coord, indices, params):
+        if tuple(coord) not in self.node_to_params:
+            self.node_to_params[tuple(coord)] = [[indices, params]]
+        else:
+            for ind, _ in self.node_to_params[tuple(coord)]:
+                if indices == ind:
+                    return
+
+            self.node_to_params[tuple(coord)].append([indices, params])
+
+                    
+    def in_bounding_box(self, coord, box):
+        for i in range(self.dim):
+            if coord[i] < box[i] or coord[i] > box[i+self.dim]:
+                return False
+        
+        return True
+
+
+    def is_coord_on_bspline(self, coord, bspline_tag):
+        bounding_box = self.model.getBoundingBox(self.dim-1, bspline_tag)
+                
+        if self.in_bounding_box(coord, bounding_box):
+            if self.model.isInside(self.dim-1, bspline_tag, coord):
+                return True
+
+        return False
 
 
     def set_boundary_conditions(self, boundary_conditions):
@@ -91,7 +160,7 @@ class NURBs2DGeometry(NURBsGeometry):
                 degree = bspline.degree,
                 weights = bspline.weights,
                 knots = bspline.knots,
-                multiplicities = bspline.multiplicities
+                multiplicities = bspline.multiplicities,
             )
 
             curve_tags.append(curve_tag)
@@ -109,10 +178,10 @@ class NURBs2DGeometry(NURBsGeometry):
             curveloop_tags.append(bspline_tags[0])
             self.bspline_tags.append(bspline_tags)
         
-        self.surface_tag = self.factory.add_plane_surface([*curveloop_tags], 1)
+        self.surface_tag = self.factory.add_plane_surface([*curveloop_tags])
 
         self.factory.synchronize()
-        self.model.mesh.generate(2)
+        self.model.addPhysicalGroup(self.dim, [self.surface_tag], 1)
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()
@@ -148,6 +217,7 @@ class NURBs3DGeometry(NURBsGeometry):
             )
             surface_tags.append(surface_tag)
 
+        self.factory.heal_shapes(makeSolids=False)
         surfaceloop_tag = self.factory.add_surface_loop(surface_tags)
 
         return [surfaceloop_tag, surface_tags]
@@ -162,10 +232,8 @@ class NURBs3DGeometry(NURBsGeometry):
             self.bspline_tags.append(bspline_tags)
         
         self.volume_tag = self.factory.add_volume([*surfaceloop_tags], 1)
-
-        self.factory.heal_shapes()
         self.factory.synchronize()
-        self.model.mesh.generate(3)
+        self.model.addPhysicalGroup(self.dim, [self.volume_tag], 1)
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()

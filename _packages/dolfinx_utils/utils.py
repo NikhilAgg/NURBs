@@ -282,3 +282,11 @@ def eigs_to_pdf_3d(V, mesh, eig_pairs, data_label="u", eig_name="Eigenvalue", fi
         continue
 
     pdf.close()
+
+
+def plot_mesh(mesh):
+    plotter = pyvista.Plotter()
+    topology, cell_types, geometry = plot.create_vtk_mesh(mesh, mesh.topology.dim)
+    grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)
+    plotter.add_mesh(grid)
+    plotter.show()

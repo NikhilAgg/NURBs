@@ -107,4 +107,8 @@ end = NURBsSurface(
 end.set_uniform_lc(1e-2)
 
 geom = NURBs3DGeometry([[start, cylinder, end]])
-geom.generate_mesh(show_mesh=True)
+geom.generate_mesh(show_mesh=False)
+geom.add_bspline_groups([[1, 2, 3]])
+geom.model_to_fenics()
+geom.create_function_space('Lagrange', 2)
+geom.create_u_function_space()

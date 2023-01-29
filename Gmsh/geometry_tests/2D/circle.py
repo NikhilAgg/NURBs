@@ -35,4 +35,8 @@ relative_path = "/meshes/circle.msh"
 file_path = folder_path + relative_path
 
 geom = NURBs2DGeometry([[circle]])
-geom.generate_mesh(show_mesh=True)
+geom.generate_mesh(show_mesh=False)
+geom.add_bspline_groups([[1]])
+geom.model_to_fenics()
+geom.create_function_space('Lagrange', 2)
+geom.create_node_to_param_map()
