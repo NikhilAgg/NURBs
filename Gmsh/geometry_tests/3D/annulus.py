@@ -27,7 +27,7 @@ points = [
 weights = [[1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1], [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]]
 knotsU = [0, 1/4, 1/2, 3/4, 1]
 knotsV = [0, 1]
-multiplicitiesU = [2, 2, 2, 2, 2]
+multiplicitiesU = [3, 2, 2, 2, 3]
 multiplicitiesV = [2, 2]
 
 cylinder = NURBsSurface(

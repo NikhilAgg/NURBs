@@ -160,10 +160,7 @@ class NURBs2DGeometry(NURBsGeometry):
         for bspline in bsplines:
             point_tags = self.add_bspline_points(bspline)
 
-            multiplicities = bspline.multiplicities
-            if point_tags[0] == point_tags[-1]:
-                multiplicities[0] -= 1
-                multiplicities[-1] -= 1
+            multiplicities = bspline.get_periodic_multiplicities()
 
             curve_tag = self.factory.add_bspline(
                 point_tags,
@@ -215,6 +212,7 @@ class NURBs3DGeometry(NURBsGeometry):
         for bspline in bsplines:
             point_tags = self.add_bspline_points(bspline)
 
+            multiplicitiesU, multiplicitiesV = bspline.get_periodic_multiplicities()
             surface_tag = self.factory.add_bspline_surface(
                 point_tags,
                 bspline.nU,
@@ -223,8 +221,8 @@ class NURBs3DGeometry(NURBsGeometry):
                 weights = bspline.weights.flatten(), 
                 knotsU = bspline.knotsU,
                 knotsV = bspline.knotsV,
-                multiplicitiesU = bspline.multiplicitiesU,
-                multiplicitiesV = bspline.multiplicitiesV
+                multiplicitiesU = multiplicitiesU,
+                multiplicitiesV = multiplicitiesV
             )
             surface_tags.append(surface_tag)
 

@@ -27,8 +27,17 @@ class NURBsCurve:
         self.lc = np.ones(self.n) * lc
 
 
-    def is_closed(self):
+    def is_periodic(self):
         return np.all(self.ctrl_points[0] == self.ctrl_points[-1])
+
+    
+    def get_periodic_multiplicities(self):
+        multiplicities = self.multiplicities[:]
+        if self.is_periodic():
+            multiplicities[0] -= 1
+            multiplicities[-1] -= 1
+
+        return multiplicities
 
 
     def calculate_point(self, u):
@@ -259,17 +268,41 @@ class NURBsSurface:
         self.lc = np.ones(self.ctrl_points.shape) * lc
 
 
-    def is_closed(self):
-        is_closed = True
+    def is_periodic(self):
+        is_u_periodic = True
+        is_v_periodic = True
         points = self.ctrl_points
         nV = self.nV
         nU = self.nU
         
         for i in range(nV):
-            if points[i*nU] != points[(i+1)*nU - 1]:
-                is_closed = False
+            if not np.all(points[i][0] == points[i][-1]):
+                is_u_periodic = False
+                break
+
+        for i in range(nU):
+            if not np.all(points[0][i] == points[-1][i]):
+                is_v_periodic = False
+                break
         
-        return is_closed
+        return [is_u_periodic, is_v_periodic]
+
+
+    def get_periodic_multiplicities(self):
+        is_u_periodic, is_v_periodic = self.is_periodic()
+
+        multiplicitiesU = self.multiplicitiesU[:]
+        if is_u_periodic:
+            multiplicitiesU[0] -= 1
+            multiplicitiesU[-1] -= 1
+
+        multiplicitiesV = self.multiplicitiesV[:]
+        if is_v_periodic:
+            multiplicitiesV[0] -= 1
+            multiplicitiesV[-1] -= 1
+
+        return multiplicitiesU, multiplicitiesV
+
 
 
     def calculate_point(self, u, v):       
