@@ -24,6 +24,8 @@ class NURBsGeometry:
         self.node_to_params = {}
 
         #Fenics
+        self.cell_type = None
+        self.degree = None
         self.V = None
         self.boundary_conditions = None
 
@@ -74,6 +76,52 @@ class NURBsGeometry:
         return self.V
 
     
+    def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False):
+        V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1))
+        V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree))
+        c = fem.Function(V)
+        C = fem.Function(V2)
+        
+        deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind)
+        def get_displacement(x):
+            C = np.zeros((len(x), len(x[0])), dtype=np.complex128)
+            for k, coord in enumerate(zip(x[0], x[1], x[2])):
+                if tuple(coord) not in self.node_to_params:
+                    continue
+                
+                for indices, params in self.node_to_params[tuple(coord)]:
+                    if tuple(bspline_ind) in deriv_bsplines: 
+                        i, j = indices
+                        param_ind = deriv_bsplines[tuple(bspline_ind)][0]
+                        C[0:self.dim][k] += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
+
+            return C
+
+        c.interpolate(get_displacement)
+        C.interpolate(c)
+
+        return C
+
+    
+    def get_deriv_bsplines(self, typ, bspline_ind, param_ind):
+        if typ != "control point":
+            return {tuple(bspline_ind): param_ind}
+
+        deriv_bsplines = {}
+        i, j = bspline_ind
+        if len(param_ind) == 1:
+            point = self.bsplines[i][j].ctrl_points[param_ind[0]]
+        elif len(param_ind) == 1:
+            point = self.bsplines[i][j].ctrl_points[param_ind[1]]
+
+        for j, bspline in enumerate(self.bsplines[i]):
+            if tuple(point) in bspline.ctrl_point_dict:
+                param_inds = bspline.ctrl_point_dict[tuple(point)]
+                deriv_bsplines[(i, j)] =  param_inds
+
+        return deriv_bsplines
+
+
     def create_node_to_param_map(self):
         self.Vu = fem.FunctionSpace(self.msh, (self.cell_type, 1))
         dof_layout = self.Vu.dofmap.dof_layout
@@ -198,7 +246,7 @@ class NURBs3DGeometry(NURBsGeometry):
         #TODO Add checks that bsplines are closed and curveloop can be made
         #TODO Fix degenerate bspline case
 
-    
+
     def create_bspline_surfaces(self, bsplines):
         surface_tags = []
         for bspline in bsplines:

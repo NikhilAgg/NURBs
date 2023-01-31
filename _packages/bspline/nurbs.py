@@ -119,17 +119,25 @@ class NURBsCurve:
         return curvature
 
 
-    def get_displacement_field(self, u, i_deriv, param, flip=False):
+    def get_displacement(self, typ, u, i_deriv, flip=False):
         
-        if param == "control point":
-            magnitude = self.derivative_wrt_ctrl_point(self, i_deriv, u)[0]
+        if typ == "control point":
+            magnitude = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
             der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
-        elif param == "weight":
-            der = self.derivative_wrt_ctrl_point(self, i_deriv, u)[1]
-        elif param == "knot":
+
+            if (i_deriv == 0) and self.ctrl_points[0] == self.ctrl_points[-1]:
+                magnitude = self.derivative_wrt_ctrl_point(self, self.n-1, u)[0]
+                der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+            elif (i_deriv == self.n-1) and self.ctrl_points[0] == self.ctrl_points[-1]:
+                magnitude = self.derivative_wrt_ctrl_point(self, self.n-1, u)[0]
+                der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+            
+        elif typ == "weight":
+            der = self.derivative_wrt_ctrl_point(i_deriv, u)[1]
+        elif typ == "knot":
             raise NameError("Not implemented")
         else:
-            raise NameError(f"No param called {param}")
+            raise NameError(f"No param called {typ}")
 
         unit_norm = self.get_unit_normal(u, flip=flip)
 
@@ -142,6 +150,14 @@ class NURBsCurve:
                 self.ctrl_points_dict.append(i)
             else:
                 self.ctrl_points_dict[point] = [i]
+
+
+    def create_ctrl_point_dict(self):
+        for i, point in enumerate(self.ctrl_points):
+                if tuple(point) in self.ctrl_points_dict:
+                    self.ctrl_points_dict.append(i)
+                else:
+                    self.ctrl_points_dict[point] = [i]
         
 
     def derivative_wrt_knot(self, n_deriv, u):
@@ -388,16 +404,22 @@ class NURBsSurface:
         return curvature
 
     
-    def get_displacement_field(self, u, v, i_deriv, j_deriv, param, flip=False):
-        if param == "control point":
-            magnitude = self.derivative_wrt_ctrl_point(self, i_deriv, j_deriv, u, v)[0]
-            der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
-        elif param == "weight":
-            der = self.derivative_wrt_ctrl_point(self, i_deriv, j_deriv, u, v)[1]
-        elif param == "knot":
+    def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False):
+        if typ == "control point":
+
+            point = self.ctrl_points_dict[self.ctrl_points[i_deriv][j_deriv]]
+            if tuple(point) in self.ctrl_points_dict:
+                der = np.zeros(self.dim)
+                for i, j in self.ctrl_points_dict[tuple(point)]:
+                    magnitude = self.derivative_wrt_ctrl_point(i, j, u, v)[0]
+                    der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+
+        elif typ == "weight":
+            der = self.derivative_wrt_ctrl_point(i_deriv, j_deriv, u, v)[1]
+        elif typ == "knot":
             raise NameError("Not implemented")
         else:
-            raise NameError(f"No param called {param}")
+            raise NameError(f"No param called {typ}")
 
         unit_norm = self.get_unit_normal(u, v, flip=flip)
 
