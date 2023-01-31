@@ -17,7 +17,7 @@ class NURBsCurve:
         self.lc = lc
 
         #Other
-        self.ctrl_point_dict = {}
+        self.create_ctrl_point_dict()
 
         #TODO FIX U DIFFERENCE AND PERIODIC SPLINES
         #TODO ADD CHECKS
@@ -125,11 +125,11 @@ class NURBsCurve:
             magnitude = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
             der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
 
-            if (i_deriv == 0) and self.ctrl_points[0] == self.ctrl_points[-1]:
-                magnitude = self.derivative_wrt_ctrl_point(self, self.n-1, u)[0]
+            if (i_deriv == 0) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
+                magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
                 der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
             elif (i_deriv == self.n-1) and self.ctrl_points[0] == self.ctrl_points[-1]:
-                magnitude = self.derivative_wrt_ctrl_point(self, self.n-1, u)[0]
+                magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
                 der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
             
         elif typ == "weight":
@@ -153,11 +153,12 @@ class NURBsCurve:
 
 
     def create_ctrl_point_dict(self):
+        self.ctrl_points_dict = {}
         for i, point in enumerate(self.ctrl_points):
                 if tuple(point) in self.ctrl_points_dict:
-                    self.ctrl_points_dict.append(i)
+                    self.ctrl_points_dict[tuple(point)].append([i])
                 else:
-                    self.ctrl_points_dict[point] = [i]
+                    self.ctrl_points_dict[tuple(point)] = [[i]]
         
 
     def derivative_wrt_knot(self, n_deriv, u):

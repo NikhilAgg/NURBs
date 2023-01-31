@@ -84,6 +84,7 @@ class NURBsGeometry:
         def get_displacement(x):
             C = np.zeros((len(x), len(x[0])), dtype=np.complex128)
             for k, coord in enumerate(zip(x[0], x[1], x[2])):
+                coord = np.around(coord, self.node_map_decimal_points)
                 if tuple(coord) not in self.node_to_params:
                     continue
                 
@@ -91,7 +92,7 @@ class NURBsGeometry:
                     if tuple(bspline_ind) in deriv_bsplines: 
                         i, j = indices
                         param_ind = deriv_bsplines[tuple(bspline_ind)][0]
-                        C[0:self.dim][k] += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
+                        C[0:self.dim, k] += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
 
             return C
 
@@ -109,18 +110,19 @@ class NURBsGeometry:
         i, j = bspline_ind
         if len(param_ind) == 1:
             point = self.bsplines[i][j].ctrl_points[param_ind[0]]
-        elif len(param_ind) == 1:
-            point = self.bsplines[i][j].ctrl_points[param_ind[1]]
+        elif len(param_ind) == 2:
+            point = self.bsplines[i][j].ctrl_points[param_ind[0]][param_ind[1]]
 
         for j, bspline in enumerate(self.bsplines[i]):
-            if tuple(point) in bspline.ctrl_point_dict:
-                param_inds = bspline.ctrl_point_dict[tuple(point)]
+            if tuple(point) in bspline.ctrl_points_dict:
+                param_inds = bspline.ctrl_points_dict[tuple(point)]
                 deriv_bsplines[(i, j)] =  param_inds
 
         return deriv_bsplines
 
     
-    def create_node_to_param_map(self):
+    def create_node_to_param_map(self, decimal_points=8):
+        self.node_map_decimal_points = decimal_points
         for i, row in enumerate(self.bspline_tags):
             for j, tag in enumerate(row[1]):
                 nodes = self.model.mesh.getNodes(self.dim-1, tag)[1]
@@ -131,6 +133,7 @@ class NURBsGeometry:
                 
 
     def add_params_to_map(self, coord, indices, params):
+        coord = np.around(coord, self.node_map_decimal_points)
         if tuple(coord) not in self.node_to_params:
             self.node_to_params[tuple(coord)] = [[indices, params]]
         else:
@@ -157,13 +160,18 @@ class NURBs2DGeometry(NURBsGeometry):
         for bspline in bsplines:
             point_tags = self.add_bspline_points(bspline)
 
+            multiplicities = bspline.multiplicities
+            if point_tags[0] == point_tags[-1]:
+                multiplicities[0] -= 1
+                multiplicities[-1] -= 1
+
             curve_tag = self.factory.add_bspline(
                 point_tags,
                 -1, 
                 degree = bspline.degree,
                 weights = bspline.weights,
                 knots = bspline.knots,
-                multiplicities = bspline.multiplicities,
+                multiplicities = multiplicities,
             )
 
             curve_tags.append(curve_tag)

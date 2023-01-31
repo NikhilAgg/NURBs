@@ -17,7 +17,7 @@ points = [
 
 weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
 knots = [0, 1/4, 1/2, 3/4, 1]
-multiplicities = [2, 2, 2, 2, 2]
+multiplicities = [3, 2, 2, 2, 3]
 
 circle = NURBsCurve(
     points,
