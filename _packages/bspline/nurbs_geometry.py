@@ -123,10 +123,11 @@ class NURBsGeometry:
     def create_node_to_param_map(self):
         for i, row in enumerate(self.bspline_tags):
             for j, tag in enumerate(row[1]):
-                nodes = self.model.mesh.getNodes(self.dim-1, tag)[2]
+                nodes = self.model.mesh.getNodes(self.dim-1, tag)[1]
                 params = self.model.getParametrization(self.dim-1, tag, nodes)
-                for k in len(nodes):
-                    self.add_params_to_map(nodes[k], [i, j], params[k])
+                p = self.dim-1
+                for k in range(len(params)//p):
+                    self.add_params_to_map(nodes[3*k:3*k+3], [i, j], params[p*k:p*k+p])
                 
 
     def add_params_to_map(self, coord, indices, params):
