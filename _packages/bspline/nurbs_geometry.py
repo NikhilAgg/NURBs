@@ -24,8 +24,6 @@ class NURBsGeometry:
         self.node_to_params = {}
 
         #Fenics
-        self.cell_type = None
-        self.degree = None
         self.V = None
         self.boundary_conditions = None
 
@@ -75,7 +73,7 @@ class NURBsGeometry:
 
         return self.V
 
-    
+
     def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False):
         V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1))
         V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree))
@@ -121,40 +119,14 @@ class NURBsGeometry:
 
         return deriv_bsplines
 
-
-    def create_node_to_param_map(self):
-        self.Vu = fem.FunctionSpace(self.msh, (self.cell_type, 1))
-        dof_layout = self.Vu.dofmap.dof_layout
-        coords = self.Vu.tabulate_dof_coordinates()
-
-        self.msh.topology.create_connectivity(self.msh.topology.dim-1, self.msh.topology.dim)
-        boundary_facets = mesh.exterior_facet_indices(self.msh.topology)
-        f_to_c = self.msh.topology.connectivity(self.msh.topology.dim-1, self.msh.topology.dim)
-        c_to_f = self.msh.topology.connectivity(self.msh.topology.dim, self.msh.topology.dim-1)
-
-        for facet in boundary_facets:
-            cells = f_to_c.links(facet)
-            facets = c_to_f.links(cells[0])
-            local_index = np.flatnonzero(facets == facet)
-
-            closure_dofs = dof_layout.entity_closure_dofs(
-                                self.msh.topology.dim-1,  local_index)
-            cell_dofs = self.Vu.dofmap.cell_dofs(cells[0])
-
-            for dof in closure_dofs:
-                local_dof = cell_dofs[dof]
-                dof_coordinate = coords[local_dof]
-                self.get_bspline_params_from_coord(dof_coordinate)
-
     
-    def get_bspline_params_from_coord(self, coord):
+    def create_node_to_param_map(self):
         for i, row in enumerate(self.bspline_tags):
             for j, tag in enumerate(row[1]):
-                if not self.is_coord_on_bspline(coord, tag):
-                    continue
-                
-                params = self.model.getParametrization(self.dim-1, tag, coord)
-                self.add_params_to_map(coord, [i, j], params)
+                nodes = self.model.mesh.getNodes(self.dim-1, tag)[2]
+                params = self.model.getParametrization(self.dim-1, tag, nodes)
+                for k in len(nodes):
+                    self.add_params_to_map(nodes[k], [i, j], params[k])
                 
 
     def add_params_to_map(self, coord, indices, params):
@@ -166,24 +138,6 @@ class NURBsGeometry:
                     return
 
             self.node_to_params[tuple(coord)].append([indices, params])
-
-                    
-    def in_bounding_box(self, coord, box):
-        for i in range(self.dim):
-            if coord[i] < box[i] or coord[i] > box[i+self.dim]:
-                return False
-        
-        return True
-
-
-    def is_coord_on_bspline(self, coord, bspline_tag):
-        bounding_box = self.model.getBoundingBox(self.dim-1, bspline_tag)
-                
-        if self.in_bounding_box(coord, bounding_box):
-            if self.model.isInside(self.dim-1, bspline_tag, coord):
-                return True
-
-        return False
 
 
     def set_boundary_conditions(self, boundary_conditions):
@@ -246,7 +200,7 @@ class NURBs3DGeometry(NURBsGeometry):
         #TODO Add checks that bsplines are closed and curveloop can be made
         #TODO Fix degenerate bspline case
 
-
+    
     def create_bspline_surfaces(self, bsplines):
         surface_tags = []
         for bspline in bsplines:
