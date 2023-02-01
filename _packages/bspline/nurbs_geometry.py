@@ -74,29 +74,62 @@ class NURBsGeometry:
         return self.V
 
 
-    def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False):
-        V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1))
-        V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree))
+    def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False, degree=None, cell_type=None):
+        deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind)
+
+        if typ == "control point":
+            C = np.zeros(self.dim)
+            dim = self.dim
+        else:
+            C = 0
+            dim = 1
+  
+        def get_displacement(indices, params):
+            nonlocal C, typ, flip, deriv_bsplines
+            if tuple(bspline_ind) in deriv_bsplines: 
+                i, j = indices
+                param_ind = deriv_bsplines[tuple(bspline_ind)][0]
+                C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
+
+            return C
+
+        degree = degree or self.degree
+        cell_type = cell_type or self.cell_type
+        return self.function_from_params(dim, get_displacement, degree, cell_type)
+
+    
+    def function_from_params(self, dim, func, degree=None, cell_type=None):
+        degree = degree or self.degree
+        cell_type = cell_type or self.cell_type
+
+        if dim == 1:
+            V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1))
+            V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree))
+        else:
+            V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1), dim=dim)
+            V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree), dim=dim)
+
         c = fem.Function(V)
         C = fem.Function(V2)
-        
-        deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind)
-        def get_displacement(x):
-            C = np.zeros((len(x), len(x[0])), dtype=np.complex128)
+
+        def interp_func(x):
+            nonlocal dim
+            if dim == 1:
+                C = np.zeros(len(x[0]), dtype=np.complex128)
+            else:
+                C = np.zeros((dim, len(x[0])), dtype=np.complex128)
+
             for k, coord in enumerate(zip(x[0], x[1], x[2])):
                 coord = np.around(coord, self.node_map_decimal_points)
                 if tuple(coord) not in self.node_to_params:
                     continue
                 
                 for indices, params in self.node_to_params[tuple(coord)]:
-                    if tuple(bspline_ind) in deriv_bsplines: 
-                        i, j = indices
-                        param_ind = deriv_bsplines[tuple(bspline_ind)][0]
-                        C[0:self.dim, k] += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
+                    C[:, k] = func(indices, params)
 
             return C
 
-        c.interpolate(get_displacement)
+        c.interpolate(interp_func)
         C.interpolate(c)
 
         return C

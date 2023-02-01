@@ -130,6 +130,8 @@ class NURBsCurve:
 
     def get_displacement(self, typ, u, i_deriv, flip=False):
         
+        unit_norm = self.get_unit_normal(u, flip=flip)
+        
         if typ == "control point":
             magnitude = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
             der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
@@ -140,17 +142,18 @@ class NURBsCurve:
             elif (i_deriv == self.n-1) and self.ctrl_points[0] == self.ctrl_points[-1]:
                 magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
                 der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+
+            return unit_norm * der
             
         elif typ == "weight":
             der = self.derivative_wrt_ctrl_point(i_deriv, u)[1]
+            return np.dot(der, unit_norm)
+
         elif typ == "knot":
             raise NameError("Not implemented")
+
         else:
             raise NameError(f"No param called {typ}")
-
-        unit_norm = self.get_unit_normal(u, flip=flip)
-
-        return np.dot(der, unit_norm)
 
 
     def create_ctrl_point_dict(self):
@@ -439,6 +442,7 @@ class NURBsSurface:
 
     
     def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False):
+        unit_norm = self.get_unit_normal(u, v, flip=flip)
         if typ == "control point":
 
             point = self.ctrl_points_dict[self.ctrl_points[i_deriv][j_deriv]]
@@ -448,16 +452,15 @@ class NURBsSurface:
                     magnitude = self.derivative_wrt_ctrl_point(i, j, u, v)[0]
                     der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
 
+            return unit_norm * der
+
         elif typ == "weight":
             der = self.derivative_wrt_ctrl_point(i_deriv, j_deriv, u, v)[1]
+            return np.dot(der, unit_norm)
         elif typ == "knot":
             raise NameError("Not implemented")
         else:
             raise NameError(f"No param called {typ}")
-
-        unit_norm = self.get_unit_normal(u, v, flip=flip)
-
-        return np.dot(der, unit_norm)
 
     
     def create_ctrl_point_dict(self):
