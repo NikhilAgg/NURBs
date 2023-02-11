@@ -29,7 +29,7 @@ dy = np.array([circle.get_displacement("control point", u, 3) for u in t])
 dx = np.array([circle.get_displacement("control point", u, 1) for u in t])
 print(np.trapz(np.array(dy)[:, 1], x=np.array(y)[:, 0]))
 
-plt.title("Displacement field for a L segement with respect to control points at the mid-points")
+# plt.title("Displacement field for a L segement with respect to control points at the mid-points")
 plt.plot(y[:, 0], y[:, 1], label = "Original")
 plt.plot(y[:, 0], dy[:, 1], label = "C for ctrl point [1, 0]")
 plt.plot(dx[:, 0], y[:, 1], label = "C for ctrl point [0, 2]")
@@ -41,7 +41,7 @@ dy = np.array([circle.get_displacement("control point", u, 3, flip=True) for u i
 dx = np.array([circle.get_displacement("control point", u, 1, flip=True) for u in t])
 print(np.trapz(np.array(dy)[:, 1], x=np.array(y)[:, 0]))
 
-plt.title("Flipped displacement field for a L segement with respect to control points at the mid-points")
+# plt.title("Flipped displacement field for a L segement with respect to control points at the mid-points")
 plt.plot(y[:, 0], y[:, 1], label = "Original")
 plt.plot(y[:, 0], dy[:, 1], label = "C for ctrl point [1, 0]")
 plt.plot(dx[:, 0], y[:, 1], label = "C for ctrl point [0, 2]")
