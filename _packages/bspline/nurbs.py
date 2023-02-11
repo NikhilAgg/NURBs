@@ -4,14 +4,7 @@ from itertools import chain
 
 class NURBsCurve:
     def __init__(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None, lc=None):
-        self.ctrl_points = np.array(ctrl_points)
-        self.dim = len(self.ctrl_points[0])
-        self.n = len(ctrl_points)
-        self.weights = np.array(weights) if weights else np.ones(self.n)
-        
-        self.knots = knots
-        self.multiplicities = multiplicities or np.ones(len(knots))
-        self.U = list(chain.from_iterable([[knots[i]] * multiplicities[i] for i in range(len(knots))]))
+        self.initialise_nurb(ctrl_points, weights, knots, multiplicities, degree)
         
         self.degree = degree
         self.lc = lc
@@ -21,6 +14,19 @@ class NURBsCurve:
 
         #TODO FIX U DIFFERENCE AND PERIODIC SPLINES
         #TODO ADD CHECKS
+
+
+    def initialise_nurb(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None):
+        self.ctrl_points = np.array(ctrl_points)
+        self.dim = len(self.ctrl_points[0])
+        self.n = len(ctrl_points)
+        self.weights = np.array(weights) if np.any(weights) else np.ones(self.n)
+        
+        self.knots = list(knots)
+        self.multiplicities = list(multiplicities) or list(np.ones(len(knots)))
+        self.U = list(chain.from_iterable([[knots[i]] * multiplicities[i] for i in range(len(knots))]))
+        
+        self.degree = degree
         
 
     def set_uniform_lc(self, lc):
@@ -134,14 +140,14 @@ class NURBsCurve:
         
         if typ == "control point":
             magnitude = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
-            der = np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+            der = np.ones(self.dim) * magnitude
 
             if (i_deriv == 0) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
                 magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
-                der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
-            elif (i_deriv == self.n-1) and self.ctrl_points[0] == self.ctrl_points[-1]:
+                der += np.ones(self.dim) * magnitude
+            elif (i_deriv == self.n-1) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
                 magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
-                der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+                der += np.ones(self.dim) * magnitude
 
             return unit_norm * der
             
@@ -171,8 +177,58 @@ class NURBsCurve:
                     self.ctrl_points_dict[tuple(point)].append([i])
                 else:
                     self.ctrl_points_dict[tuple(point)] = [[i]]
+
+
+    def knot_insertion(self, u, r, overwrite=False):
+        k = find_span(self.n, self.degree, u, self.U)
+        s = 0 if self.U[k] != u else self.multiplicities[self.knots.index(u)]
+        mp = self.n + self.degree + 1
+        nq = self.n+r
+        mq = nq + self.degree + 1
         
 
+        #Create New Knot vector
+        uq = [0] * mq
+        uq[0 : k+1] = self.U[0 : k+1]
+        uq[k+1 : k+r+1] = [u] * r
+        uq[k+r+1 : mp+r+1] = self.U[k+1 : mp+1]
+
+        #Create New control points and insert unchanged ones
+        Q = np.zeros((nq, 3))
+        wq = np.zeros(nq)
+        Q[0 : k-self.degree+1] = self.ctrl_points[0 : k-self.degree+1]
+        Q[k-s+r : self.n + r + 1] = self.ctrl_points[k-s : self.n+1]
+        
+        wq[0 : k-self.degree+1] = self.weights[0 : k-self.degree+1]
+        wq[k-s+r : self.n + r + 1] = self.weights[k-s : self.n+1]
+
+        #Calculate new control points
+        R = np.zeros((self.degree+1, 3))
+        Rw = np.zeros(self.degree+1)
+        R[0 : self.degree-s+1] = self.ctrl_points[k-self.degree : k-s+1]
+        Rw[0 : self.degree-s+1] = self.weights[k-self.degree : k-s+1]
+        for j in range(1, r+1):
+            L = k - self.degree + j
+            for i in range(self.degree - j - s + 1):
+                alpha = (u - self.U[L+i])/(self.U[i+k+1]-self.U[L+i])
+                R[i] = alpha*R[i+1] + (1.0-alpha)*R[i]
+                Rw[i] = alpha*Rw[i+1] + (1.0-alpha)*Rw[i]
+            
+            Q[L] = R[0]
+            Q[k+r-j-s] = R[self.degree-j-s]
+            wq[L] = Rw[0]
+            wq[k+r-j-s] = Rw[self.degree-j-s]
+
+        Q[L+1 : k-s] = R[1:k-s-L]
+        wq[L+1 : k-s] = Rw[1:k-s-L]
+
+        if overwrite:
+            knots, multiplicities = U_vec_to_knots(uq)
+            self.initialise_nurb(Q, wq, knots, multiplicities, self.degree)
+
+        return uq, Q, wq
+
+        
     def derivative_wrt_knot(self, n_deriv, u):
         i = find_span(self.n, self.degree, u, self.U)
 
@@ -502,6 +558,17 @@ class NURBsSurface:
 
         return A_ders, w_ders
 
+def U_vec_to_knots(U):
+    knots = [U[0]]
+    multiplicities = [1]
+    for u in U[1:]:
+        if knots[-1] != u:
+            knots.append(u)
+            multiplicities.append(1)
+        else:
+            multiplicities[-1] += 1
+
+    return knots, multiplicities
 
 def find_inds(i, degree):
 	if i - degree < 0:

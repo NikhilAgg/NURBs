@@ -2,7 +2,7 @@ from bspline.nurbs import NURBsCurve
 import numpy as np
 import matplotlib.pyplot as plt
 
-epsilon = np.array([[0, 0.1, 0]])
+epsilon = np.array([[0, 1, 0]])
 ind_der = 3
 
 points = [
