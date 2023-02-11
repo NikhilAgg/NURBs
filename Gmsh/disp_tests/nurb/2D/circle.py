@@ -50,4 +50,6 @@ disp = (norms.T*dy).T
 plt.plot(y[:, 0], y[:, 1], label = "Original")
 plt.plot(y[:, 0] + disp[:, 0], y[:, 1] + disp[:, 1], label="Displaced circle after increase in Radius of 1")
 plt.legend()
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
