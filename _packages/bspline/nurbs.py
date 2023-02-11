@@ -180,13 +180,14 @@ class NURBsCurve:
 
 
     def knot_insertion(self, u, r, overwrite=False):
+        Pw = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
+
         k = find_span(self.n, self.degree, u, self.U)
         s = 0 if self.U[k] != u else self.multiplicities[self.knots.index(u)]
         mp = self.n + self.degree + 1
         nq = self.n+r
         mq = nq + self.degree + 1
         
-
         #Create New Knot vector
         uq = [0] * mq
         uq[0 : k+1] = self.U[0 : k+1]
@@ -194,39 +195,31 @@ class NURBsCurve:
         uq[k+r+1 : mp+r+1] = self.U[k+1 : mp+1]
 
         #Create New control points and insert unchanged ones
-        Q = np.zeros((nq, 3))
-        wq = np.zeros(nq)
-        Q[0 : k-self.degree+1] = self.ctrl_points[0 : k-self.degree+1]
-        Q[k-s+r : self.n + r + 1] = self.ctrl_points[k-s : self.n+1]
-        
-        wq[0 : k-self.degree+1] = self.weights[0 : k-self.degree+1]
-        wq[k-s+r : self.n + r + 1] = self.weights[k-s : self.n+1]
+        Qw = np.zeros((nq, self.dim+1))
+        Qw[0 : k-self.degree+1] = Pw[0 : k-self.degree+1]
+        Qw[k-s+r : self.n + r + 1] = Pw[k-s : self.n+1]
 
         #Calculate new control points
-        R = np.zeros((self.degree+1, 3))
-        Rw = np.zeros(self.degree+1)
-        R[0 : self.degree-s+1] = self.ctrl_points[k-self.degree : k-s+1]
-        Rw[0 : self.degree-s+1] = self.weights[k-self.degree : k-s+1]
+        R = np.zeros((self.degree+1, self.dim+1))
+        R[0 : self.degree-s+1] = Pw[k-self.degree : k-s+1]
         for j in range(1, r+1):
             L = k - self.degree + j
             for i in range(self.degree - j - s + 1):
                 alpha = (u - self.U[L+i])/(self.U[i+k+1]-self.U[L+i])
                 R[i] = alpha*R[i+1] + (1.0-alpha)*R[i]
-                Rw[i] = alpha*Rw[i+1] + (1.0-alpha)*Rw[i]
-            
-            Q[L] = R[0]
-            Q[k+r-j-s] = R[self.degree-j-s]
-            wq[L] = Rw[0]
-            wq[k+r-j-s] = Rw[self.degree-j-s]
+                
+            Qw[L] = R[0]
+            Qw[k+r-j-s] = R[self.degree-j-s]
 
-        Q[L+1 : k-s] = R[1:k-s-L]
-        wq[L+1 : k-s] = Rw[1:k-s-L]
+        Qw[L+1 : k-s] = R[1:k-s-L]
 
         if overwrite:
+            weights = Qw[:, -1]
+            ctrl_points = (Qw[:, 0:-1].T / weights).T
             knots, multiplicities = U_vec_to_knots(uq)
-            self.initialise_nurb(Q, wq, knots, multiplicities, self.degree)
+            self.initialise_nurb(ctrl_points, weights, knots, multiplicities, self.degree)
 
-        return uq, Q, wq
+        return uq, ctrl_points, weights
 
         
     def derivative_wrt_knot(self, n_deriv, u):
