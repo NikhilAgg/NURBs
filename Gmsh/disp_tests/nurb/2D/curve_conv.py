@@ -94,7 +94,7 @@ epsilon_w = 0.1
 x= []
 yp = []
 yw = []
-for i in range(1, 6):
+for i in range(1, 5):
     xi = 10**i
     error_p, error_w = func(xi, epsilon_point, epsilon_w, 1)
     yp.append(error_p)
@@ -104,6 +104,7 @@ for i in range(1, 6):
 plt.plot(x, yp)
 plt.plot(x, [0] * len(x), "k--")
 plt.xscale("log", base=10)
+plt.yscale("log", base=10)
 plt.xlabel("Number of Points along the curve")
 plt.ylabel("Error")
 plt.show()
@@ -111,6 +112,7 @@ plt.show()
 plt.plot(x, yw)
 plt.plot(x, [0] * len(x), "k--")
 plt.xscale("log", base=10)
+plt.yscale("log", base=10)
 plt.xlabel("Number of Points along the curve")
 plt.ylabel("Error")
 plt.show()

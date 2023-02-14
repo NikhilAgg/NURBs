@@ -34,6 +34,7 @@ y = np.array([circle.calculate_point(u) for u in t])
 norms = np.array([circle.get_unit_normal(u, flip=flip) for u in t])
 dp = np.array([circle.get_displacement("control point", u, k, flip=flip) for u in t])
 dw = np.array([circle.get_displacement("weight", u, k, flip=flip) for u in t])
+
 s = [0]
 for i in range(1, len(y)):
     s.append(s[i-1] + np.linalg.norm(y[i] - y[i-1]))
@@ -81,12 +82,12 @@ x= [0]
 y1 = [0]
 y2 = [0]
 ep_step = 0.01
-for i in range(1, 10):
+for i in range(1, 5):
     epsilon = ep_step*i
-    epsilon_p = [epsilon, epsilon]
-    dA_p, dA_w = func(epsilon_p, epsilon)
+    epsilon_point = [0, epsilon]
+    dA_p, dA_w = func(epsilon_point, epsilon)
 
-    dA_p_from_dp = np.trapz(dp[:, 0]*epsilon_p[0] + dp[:, 1]*epsilon_p[1], x=s)
+    dA_p_from_dp = np.trapz(dp[:, 0]*epsilon_point[0] + dp[:, 1]*epsilon_point[1], x=s)
     dA_w_from_dw = np.trapz(dw*epsilon, x=s)
 
     y1.append(np.abs(dA_p - dA_p_from_dp))

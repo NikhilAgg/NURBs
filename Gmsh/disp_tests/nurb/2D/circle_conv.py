@@ -49,15 +49,15 @@ def func(n, r):
 x= []
 y = []
 r = 2
-for i in range(1, 6):
+for i in range(1, 5):
+    print(i)
     xi = 10**i
-    y.append(func(xi, r))
+    y.append(np.log(np.abs(func(xi, r) - 2*np.pi*r)))
     x.append(xi)
 
 plt.plot(x, y)
-plt.plot(x, [2*np.pi*r]*len(x), label="$2\pi r$")
 plt.xscale("log", base=10)
 plt.xlabel("Number of Points along the curve")
-plt.ylabel("Integral of Displacement field")
+plt.ylabel("Log Error")
 plt.legend()
 plt.show()

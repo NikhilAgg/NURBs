@@ -139,15 +139,12 @@ class NURBsCurve:
         unit_norm = self.get_unit_normal(u, flip=flip)
         
         if typ == "control point":
-            magnitude = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
-            der = np.ones(self.dim) * magnitude
+            der = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
 
             if (i_deriv == 0) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
-                magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
-                der += np.ones(self.dim) * magnitude
+                der += self.derivative_wrt_ctrl_point(self.n-1, u)[0]
             elif (i_deriv == self.n-1) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
-                magnitude = self.derivative_wrt_ctrl_point(self.n-1, u)[0]
-                der += np.ones(self.dim) * magnitude
+                der += self.derivative_wrt_ctrl_point(0, u)[0]
 
             return unit_norm * der
             
@@ -366,11 +363,12 @@ class NURBsSurface:
 
         temp = np.zeros((self.degreeV+1, self.dim+1))
         for j in range(self.degreeV + 1):
-            ind, no_nonzero_basis = find_inds(i_u, self.degreeU)
+            indU, no_nonzero_basis = find_inds(i_u, self.degreeU)
+            indV, _ = find_inds(i_v, self.degreeV)
             for k in range(no_nonzero_basis):
-                common = self.weights[j][ind + k] * N_u[k]
+                common = self.weights[indV + j][indU + k] * N_u[k]
                 temp[j][-1] += common
-                temp[j][0:-1] += self.ctrl_points[j][ind + k] * common
+                temp[j][0:-1] += self.ctrl_points[indV + j][indU + k] * common
                 
         surface = np.zeros(self.dim+1)
         for l in range(self.degreeV + 1):
@@ -383,7 +381,7 @@ class NURBsSurface:
         i_u = find_span(self.nU, self.degreeU, u, self.U)
         i_v = find_span(self.nV, self.degreeV, v, self.V)
 
-        if i_u < i_deriv or i_u > i_deriv + self.degreeU or i_v < j_deriv or i_v > j_deriv + self.degreeV:
+        if i_v < i_deriv or i_v > i_deriv + self.degreeV or i_u < j_deriv or i_u > j_deriv + self.degreeU:
             return [0, [0, 0, 0]]
             
         N_u = nurb_basis(i_u, self.degreeU, u, self.U)
@@ -399,10 +397,10 @@ class NURBsSurface:
                 denom += common
                 numerator_sum += common * self.ctrl_points[ind_v + k][ind_u + l]
 
-        deriv_wrt_point = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.weights[j_deriv][i_deriv]) / denom
+        deriv_wrt_point = (N_v[i_deriv - i_v + self.degreeV] * N_u[j_deriv - i_u + self.degreeU] * self.weights[i_deriv][j_deriv]) / denom
         
-        deriv_wrt_weight = (N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV] * self.ctrl_points[j_deriv][i_deriv]) / denom - \
-                            (numerator_sum * N_u[i_deriv - i_u + self.degreeU] * N_v[j_deriv - i_v + self.degreeV])/denom**2
+        deriv_wrt_weight = (N_v[i_deriv - i_v + self.degreeV] * N_u[j_deriv - i_u + self.degreeU] * self.ctrl_points[i_deriv][j_deriv]) / denom - \
+                            (numerator_sum * N_v[i_deriv - i_v + self.degreeV] * N_u[j_deriv - i_u + self.degreeU])/denom**2
         
         return [deriv_wrt_point, deriv_wrt_weight]
 
@@ -491,15 +489,18 @@ class NURBsSurface:
 
     
     def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False):
+        if self.ctrl_points_dict == {}:
+            self.create_ctrl_point_dict()
+
         unit_norm = self.get_unit_normal(u, v, flip=flip)
         if typ == "control point":
 
-            point = self.ctrl_points_dict[self.ctrl_points[i_deriv][j_deriv]]
+            point = self.ctrl_points[i_deriv][j_deriv]
             if tuple(point) in self.ctrl_points_dict:
                 der = np.zeros(self.dim)
                 for i, j in self.ctrl_points_dict[tuple(point)]:
                     magnitude = self.derivative_wrt_ctrl_point(i, j, u, v)[0]
-                    der += np.ones(self.dim) * magnitude / np.sqrt(self.dim)
+                    der += magnitude
 
             return unit_norm * der
 
@@ -516,9 +517,9 @@ class NURBsSurface:
         for i, row in enumerate(self.ctrl_points):
             for j, point in enumerate(row):
                 if tuple(point) in self.ctrl_points_dict:
-                    self.ctrl_points_dict.append((i, j))
+                    self.ctrl_points_dict[tuple(point)].append((i, j))
                 else:
-                    self.ctrl_points_dict[point] = [(i, j)]
+                    self.ctrl_points_dict[tuple(point)] = [(i, j)]
 
 
     def calculate_num_and_den_derivatives(self, u, v, k):

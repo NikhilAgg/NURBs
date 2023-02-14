@@ -38,16 +38,17 @@ for i in range(1, theta.shape[0]):
     s.append(s[i-1] + r*abs(abs(theta[i])-abs(theta[i-1])))
 
 ti = time.time()
-dy = np.array([np.linalg.norm(circle.get_displacement("control point", u, 0, flip=True)) for u in t])
+dy = np.array([np.sum(circle.get_displacement("control point", u, 0, flip=True)*(np.array(points[0])/r)) for u in t])
 for i in range(1, 8):
-    p = np.array([np.linalg.norm(circle.get_displacement("control point", u, i, flip=True)) for u in t])
+    p = np.array([np.sum(circle.get_displacement("control point", u, i, flip=True)*(np.array(points[i])/r)) for u in t])
     dy += p
 
-print(time.time() - ti)
-print(np.trapz(dy, x=s)/np.pi)
+# print(time.time() - ti)
+# print(np.trapz(dy, x=s)/np.pi)
 
 disp = (norms.T*dy).T
 plt.plot(y[:, 0], y[:, 1], label = "Original")
+# plt.plot(y[:, 0] + dy[:, 0], y[:, 1] + dy[:, 1], label="Displaced circle after increase in Radius of 1")
 plt.plot(y[:, 0] + disp[:, 0], y[:, 1] + disp[:, 1], label="Displaced circle after increase in Radius of 1")
 plt.legend()
 plt.xlabel("x")
