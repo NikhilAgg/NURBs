@@ -210,10 +210,11 @@ class NURBsCurve:
 
         Qw[L+1 : k-s] = R[1:k-s-L]
 
+        weights = Qw[:, -1]
+        ctrl_points = (Qw[:, 0:-1].T / weights).T
+        knots, multiplicities = U_vec_to_knots(uq)
+
         if overwrite:
-            weights = Qw[:, -1]
-            ctrl_points = (Qw[:, 0:-1].T / weights).T
-            knots, multiplicities = U_vec_to_knots(uq)
             self.initialise_nurb(ctrl_points, weights, knots, multiplicities, self.degree)
 
         return uq, ctrl_points, weights

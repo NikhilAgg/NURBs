@@ -68,25 +68,22 @@ def func(n,r, l):
 
 x= []
 y = []
+y_cache = [9.991080713140022, 1.7521443777203558, 0.8621414607654287, 0.5717123965035285, 0.4276476737890391]
 r = 5
 l = 3
-for i in range(1, 6):
-    print(i)
-    xi = int(np.floor(10**(i*0.5)))
-    y.append(np.abs(func(xi, r, l) - 2*np.pi*r*l))
-    x.append(xi)
-
-plt.plot(x, y)
+xs = [10, 50, 100, 150, 200]
+# for i in range(0, 5):
+#     print(i)
+#     xi = xs[i]
+#     y.append(np.abs(func(xi, r, l) - 2*np.pi*r*l))
+#     x.append(xi)
+# print(x)
+# print(y)
+# plt.plot(x, y)
+plt.plot(xs, y_cache)
 plt.xscale("log", base=10)
 plt.yscale("log", base=10)
 plt.xlabel("Number of Points along the curve")
 plt.ylabel("Log Error")
-plt.legend()
-plt.show()
-
-plt.plot(x, y)
-plt.plot([0, 10^4], [2*np.pi*r*l, 2*np.pi*r*l])
-plt.xlabel("Number of Points along the curve")
-plt.ylabel("Error")
 plt.legend()
 plt.show()
