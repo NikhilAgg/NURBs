@@ -32,6 +32,7 @@ class NURBsGeometry:
         point_tags = []
 
         ctrl_points = curve.ctrl_points.reshape(-1, curve.dim)
+        ctrl_points = np.c_[ctrl_points, np.zeros((ctrl_points.shape[0], np.abs(3-self.dim)))] #Makes the ctrl points at least 3D so that they can be passed into gmsh
         for point, lc_i in zip(ctrl_points, curve.lc.flatten()):
             if tuple(point) not in self.point_dict:
                 tag = self.factory.addPoint(*point, lc_i)
@@ -57,9 +58,12 @@ class NURBsGeometry:
                 self.model.setPhysicalName(self.dim-1, tag, name)
                 
 
-    def model_to_fenics(self, comm=MPI.COMM_WORLD, rank=0):
+    def model_to_fenics(self, comm=MPI.COMM_WORLD, rank=0, show_mesh=False):
         self.model.mesh.generate(self.dim)
         self.msh, self.cell_markers, self.facet_markers = gmshio.model_to_mesh(self.model, comm, rank)
+
+        if show_mesh and '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
 
 
     def create_function_space(self, cell_type, degree):
@@ -78,18 +82,18 @@ class NURBsGeometry:
         deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind)
 
         if typ == "control point":
-            C = np.zeros(self.dim)
             dim = self.dim
         else:
-            C = 0
             dim = 1
   
-        def get_displacement(indices, params):
-            nonlocal C, typ, flip, deriv_bsplines
-            if tuple(bspline_ind) in deriv_bsplines: 
-                i, j = indices
-                param_ind = deriv_bsplines[tuple(bspline_ind)][0]
-                C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
+        def get_displacement(bsplines, coord):
+            nonlocal typ, flip, deriv_bsplines
+            for indices, params in bsplines:
+                C = np.zeros(dim)
+                if tuple(indices) in deriv_bsplines: 
+                    i, j = indices
+                    param_ind = deriv_bsplines[tuple(indices)][0]
+                    C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
 
             return C
 
@@ -103,30 +107,34 @@ class NURBsGeometry:
         cell_type = cell_type or self.cell_type
 
         if dim == 1:
-            V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1))
-            V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree))
+            V = fem.FunctionSpace(self.msh, (cell_type, 1))
+            V2 = fem.FunctionSpace(self.msh, (cell_type, degree))
         else:
-            V = fem.VectorFunctionSpace(self.msh, (self.cell_type, 1), dim=dim)
-            V2 = fem.VectorFunctionSpace(self.msh, (self.cell_type, self.degree), dim=dim)
+            V = fem.VectorFunctionSpace(self.msh, (cell_type, 1), dim=dim)
+            V2 = fem.VectorFunctionSpace(self.msh, (cell_type, degree), dim=dim)
 
         c = fem.Function(V)
         C = fem.Function(V2)
 
         def interp_func(x):
             nonlocal dim
-            if dim == 1:
-                C = np.zeros(len(x[0]), dtype=np.complex128)
-            else:
-                C = np.zeros((dim, len(x[0])), dtype=np.complex128)
-
+            C = np.zeros((dim, len(x[0])), dtype=np.complex128)
+            i=0
+            dictd = {}
+            us = []
             for k, coord in enumerate(zip(x[0], x[1], x[2])):
                 coord = np.around(coord, self.node_map_decimal_points)
                 if tuple(coord) not in self.node_to_params:
                     continue
-                
-                for indices, params in self.node_to_params[tuple(coord)]:
-                    C[:, k] = func(indices, params)
+                i+=1
+                if k==251:
+                    pass
+                if tuple(coord) not in dictd:
+                    dictd[tuple(coord)] = [func(self.node_to_params[tuple(coord)], coord), self.node_to_params[tuple(coord)][0][1][0], k]
+                    us.append(self.node_to_params[tuple(coord)][0][0][1]*0.25 + self.node_to_params[tuple(coord)][0][1][0])
+                C[:, k] = func(self.node_to_params[tuple(coord)], coord)
 
+            dictd = dict(sorted(dictd.items(), key=lambda x: x[1][1]))
             return C
 
         c.interpolate(interp_func)
