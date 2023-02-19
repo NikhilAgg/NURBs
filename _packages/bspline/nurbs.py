@@ -135,7 +135,8 @@ class NURBsCurve:
 
 
     def get_displacement(self, typ, u, i_deriv, flip=False):
-        
+        if u==0.25:
+            pass
         unit_norm = self.get_unit_normal(u, flip=flip)
         
         if typ == "control point":

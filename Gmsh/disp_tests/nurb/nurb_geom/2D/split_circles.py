@@ -2,8 +2,9 @@ from bspline.nurbs import NURBsCurve
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-lc = 1e-4
+lc = 1e-2
 r = 1
+n=100
 points = [
     [ r        ,  0.        ],
     [ r        ,  r],

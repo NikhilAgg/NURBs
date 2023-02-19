@@ -48,4 +48,4 @@ for i in range(1, 8):
     C += np.dot(geom.get_displacement_field("control point", (0, 0), [i]), (np.array(geom.bsplines[0][0].ctrl_points[i])/r))
 
 dA = fem.assemble_scalar(fem.form((C)*ufl.ds))
-print(dA)
+print(dA/(2*np.pi*r))

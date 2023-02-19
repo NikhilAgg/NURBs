@@ -17,12 +17,12 @@ geom.create_function_space("Lagrange", 2)
 geom.create_node_to_param_map()
 
 C = fem.Function(geom.V)
-C += geom.get_displacement_field("control point", (0, 0), [1])[0]
-for i in range(1, 4):
-    C += np.dot(geom.get_displacement_field("control point", (0, i), [1]), (np.array(geom.bsplines[0][i].ctrl_points[1])/r))
-
 for i in range(4):
     C += np.dot(geom.get_displacement_field("control point", (0, i), [0]), (np.array(geom.bsplines[0][i].ctrl_points[0])/r))
+    print(fem.assemble_scalar(fem.form((C)*ufl.ds)))
+    C += np.dot(geom.get_displacement_field("control point", (0, i), [1]), (np.array(geom.bsplines[0][i].ctrl_points[1])/r))
+    print(fem.assemble_scalar(fem.form((C)*ufl.ds)))
+    # C += np.dot(geom.get_displacement_field("control point", (0, i), [2]), (np.array(geom.bsplines[0][i].ctrl_points[2])/r))
 
 dA = fem.assemble_scalar(fem.form((C)*ufl.ds))
-print(dA/(2*np.pi))
+print(f"Final: {dA}")
