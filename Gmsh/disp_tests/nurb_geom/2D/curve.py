@@ -110,7 +110,7 @@ def func(epsilon_p, epsilon_w, j):
 x= [0]
 y1 = [0]
 y2 = [0]
-ep_step = 0.00000001
+ep_step = 0.001
 cache = False
 
 if cache:

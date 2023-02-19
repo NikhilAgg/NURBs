@@ -4,15 +4,27 @@ import matplotlib.pyplot as plt
 import time
 from scipy.integrate import simpson, quad
 
-def get_dis(x1, x2, x3, which=1):
+def get_dis2(x1, x2, x3, which="backward"):
     coeffs = np.polyfit([x1[0], x2[0], x3[0]], [x1[1], x2[1], x3[1]], deg=2)
     def func(x):
         return (4*coeffs[0]**2*x**2 + 4*coeffs[0]*coeffs[1]*x + coeffs[1]**2 + 1)**0.5
 
-    if which == 0:
+    if which == "forward":
         return quad(func, x1[0], x2[0], epsabs=1e-19)[0]
     else:
         return quad(func, x2[0], x3[0], epsabs=1e-19)[0]
+
+def get_dis(x1, x2, x3, which="backward"):
+    dx = np.mean([x2[0]-x1[0], x3[0]-x2[0]])
+    
+    if which == "forward":
+        dy_dx = (-3*x1[1] + 4*x2[1] - x3[1])/(2*dx)
+    elif which == "backward":
+        dy_dx = (x1[1] - 4*x2[1] + 3*x3[1])/(2*dx)
+
+    dis = np.sqrt(1 + dy_dx**2)*(dx)
+    return dis
+    
 
 k = 1
 n = 10001
@@ -48,10 +60,19 @@ dp = np.array([circle.get_displacement("control point", u, k, flip=flip) for u i
 dw = np.array([circle.get_displacement("weight", u, k, flip=flip) for u in t])
 
 s = [0]
-s.append(get_dis(y[0], y[1], y[2], which=0))
+s.append(get_dis(y[1], y[2], y[3], which="forward"))
 for i in range(2, len(y)):
-    s.append(s[i-1] + get_dis(y[i-2], y[i-1], y[i]))
+    s.append(s[i-1] + get_dis(y[i-2], y[i-1], y[i], which="backward"))
 
+s2 = [0]
+s2.append(get_dis2(y[1], y[2], y[3], which="forward"))
+for i in range(2, len(y)):
+    s2.append(s2[i-1] + get_dis2(y[i-2], y[i-1], y[i], which="backward"))
+
+s3 = [0]
+s3.append(np.linalg.norm(y[1]-y[0]))
+for i in range(2, len(y)):
+    s3.append(s[i-1] + np.linalg.norm(y[i]-y[i-1]))
 
 area = simpson(y[:, 1], x=y[:, 0])
 
@@ -95,7 +116,7 @@ def func(epsilon_point, epsilon_w):
 x= [0]
 y1 = [0]
 y2 = [0]
-ep_step = 0.1
+ep_step = 0.000001
 for i in range(1, 5):
     epsilon = ep_step*i
     epsilon_point = [0, epsilon]
