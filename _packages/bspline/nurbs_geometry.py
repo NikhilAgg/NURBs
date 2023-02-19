@@ -18,7 +18,7 @@ class NURBsGeometry:
 
         #Gmsh
         self.gmsh = gmsh
-        self.gmsh.initialize()
+        self.gmsh.initialize() if not self.gmsh.isInitialized() else None
         self.model = self.gmsh.model
         self.factory = self.model.occ
         self.node_to_params = {}
@@ -145,7 +145,7 @@ class NURBsGeometry:
     
     def get_deriv_bsplines(self, typ, bspline_ind, param_ind):
         if typ != "control point":
-            return {tuple(bspline_ind): param_ind}
+            return {tuple(bspline_ind): [param_ind]}
 
         deriv_bsplines = {}
         i, j = bspline_ind
