@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-r = 1
-n=2000
+r = 3
+n=200000
 points = [
     [r, 0],
     [r, r],
@@ -43,7 +43,7 @@ for i in range(1, theta.shape[0]):
 ti = time.time()
 
 dy = np.array([np.dot(circle.get_displacement("control point", u, 0, flip=True), (np.array(points[0])/r)) for u in t])
-# print(np.trapz(dy, x=s))
+print(np.trapz(dy, x=s))
 for i in range(1, 8):
     p = np.array([np.sum(circle.get_displacement("control point", u, i, flip=True)*(np.array(points[i])/r)) for u in t])
     print(np.trapz(p, x=s))

@@ -1,13 +1,16 @@
 from bspline.nurbs_geometry import NURBs2DGeometry
 import numpy as np
 import matplotlib.pyplot as plt
-from split_circles import *
+from split_circles import create_arcs
 from mpi4py import MPI
 from dolfinx import fem
 from dolfinx_utils import utils
 import ufl
 import time
 
+r = 1
+lc = 1e-2
+circle1, circle2, circle3, circle4 = create_arcs(r, lc)
 geom = NURBs2DGeometry([[circle1, circle2, circle3, circle4]])
 geom.generate_mesh(show_mesh=False)
 t = time.time()

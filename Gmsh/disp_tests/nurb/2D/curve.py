@@ -5,18 +5,23 @@ import time
 
 epsilon_point = [1, 1]
 epsilon_w = 0.3
+r=5
 points = [
-    [10, 10],
-    [20, 20],
-    [30, 5],
-    [40, 20],
-    [50, 20],
-    [60, 10]
+    [r, 0],
+    [r+1, r+1],
+    [0, r-2],
+    [-r-1, r+1],
+    [-r+1, 0],
+    [-r-1, -r-1],
+    [0, -r+1],
+    [r+1, -r-2],
+    [r-2, -0.1],
+    [r, 0]
 ]
 
-weights = [1, 2, 3, 4, 5, 6]
-knots = [0, 1/4, 1/2, 1]
-multiplicities = [4, 1, 1, 4]
+weights = [1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 1]
+knots = [0, 1/4, 1/2, 3/4, 1]
+multiplicities = [4, 2, 2, 2, 4]
 
 circle = NURBsCurve(
     points,
