@@ -32,7 +32,7 @@ circle = NURBsCurve(
     multiplicities,
     2
 )
-circle.set_uniform_lc(1e-3)
+circle.set_uniform_lc(1e-2)
 
 geom = NURBs2DGeometry([[circle]])
 geom.generate_mesh(show_mesh=False)

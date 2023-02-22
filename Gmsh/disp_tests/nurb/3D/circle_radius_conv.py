@@ -59,31 +59,39 @@ def func(n,r, l):
             p = np.array([np.sum(cylinder.get_displacement("control point", u, v, j, i, flip=False)[0:2]*((np.array(points[j][i])/r)[0:2])) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
             dy += p
 
+            intg = []
+            for i in range(n):
+                intg.append(np.trapz(dy[i*n:(i+1)*n], x = y[i*n:(i+1)*n, 2]))
+
+            dV = np.trapz(intg, x=sl)
+            print(dV)
+
     intg = []
     for i in range(n):
         intg.append(np.trapz(dy[i*n:(i+1)*n], x = y[i*n:(i+1)*n, 2]))
 
     dV = np.trapz(intg, x=sl)
+
     return dV
 
 x= []
 y = []
 y_cache = [9.991080713140022, 1.7521443777203558, 0.8621414607654287, 0.5717123965035285, 0.4276476737890391]
-r = 5
-l = 3
+r = 2
+l = 2
 xs = [10, 50, 100, 150, 200]
-# for i in range(0, 5):
-#     print(i)
-#     xi = xs[i]
-#     y.append(np.abs(func(xi, r, l) - 2*np.pi*r*l))
-#     x.append(xi)
+for i in range(0, 1):
+    print(i)
+    xi = 1e-1
+    y.append(np.abs(func(100, r, l) - 2*np.pi*r*l))
+    x.append(xi)
 # print(x)
 # print(y)
 # plt.plot(x, y)
-plt.plot(xs, y_cache)
-plt.xscale("log", base=10)
-plt.yscale("log", base=10)
-plt.xlabel("Number of Points along the curve")
-plt.ylabel("Log Error")
-plt.legend()
-plt.show()
+# plt.plot(xs, y_cache)
+# plt.xscale("log", base=10)
+# plt.yscale("log", base=10)
+# plt.xlabel("Number of Points along the curve")
+# plt.ylabel("Log Error")
+# plt.legend()
+# plt.show()

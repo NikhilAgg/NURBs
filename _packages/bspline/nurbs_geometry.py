@@ -130,11 +130,11 @@ class NURBsGeometry:
                 if k==251:
                     pass
                 if tuple(coord) not in dictd:
-                    dictd[tuple(coord)] = [func(self.node_to_params[tuple(coord)], coord), self.node_to_params[tuple(coord)][0][1][0], k]
-                    us.append(self.node_to_params[tuple(coord)][0][0][1]*0.25 + self.node_to_params[tuple(coord)][0][1][0])
+                    dictd[tuple(coord)] = [func(self.node_to_params[tuple(coord)], coord), self.node_to_params[tuple(coord)][0][1], k]
+                    us.append(self.node_to_params[tuple(coord)][0][1])
                 C[:, k] = func(self.node_to_params[tuple(coord)], coord)
 
-            dictd = dict(sorted(dictd.items(), key=lambda x: x[1][1]))
+            dictd = dict(sorted(dictd.items(), key=lambda x: x[1][1][0]))
             return C
 
         c.interpolate(interp_func)
@@ -155,6 +155,9 @@ class NURBsGeometry:
             point = self.bsplines[i][j].ctrl_points[param_ind[0]][param_ind[1]]
 
         for j, bspline in enumerate(self.bsplines[i]):
+            if bspline.ctrl_points_dict == {}:
+                bspline.create_ctrl_point_dict()
+
             if tuple(point) in bspline.ctrl_points_dict:
                 param_inds = bspline.ctrl_points_dict[tuple(point)]
                 deriv_bsplines[(i, j)] =  param_inds
