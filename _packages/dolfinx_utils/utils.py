@@ -295,6 +295,7 @@ def plot_mesh(mesh, V=None, func = None):
         u_grid = pyvista.UnstructuredGrid(u_topology, u_cell_types, u_geometry)
         u_grid.point_data["f"] = func.x.array.real
         u_grid.set_active_scalars("f")
+        plotter.add_mesh(u_grid)
         pass
         
     plotter.show()
@@ -313,6 +314,6 @@ def plot_over_line(mesh, V, func, p1, p2, res=100):
 
     p_sim = u_grid.sample_over_line(p1, p2, resolution=res).point_data["f"]
 
-    x_line = np.linspace(0, 1, res)
+    x_line = np.linspace(0, 1, res+1)
     plt.plot(x_line, p_sim, label="Numerical")
     plt.show()

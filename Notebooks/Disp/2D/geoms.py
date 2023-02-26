@@ -1,5 +1,9 @@
 from bspline.nurbs import NURBsSurface, NURBsCurve
 from bspline.nurbs_geometry import NURBs2DGeometry
+import gmsh
+import sys
+from dolfinx.io import gmshio
+from mpi4py import MPI
 
 
 def unit_square(epsilon, lc):
@@ -9,6 +13,30 @@ def unit_square(epsilon, lc):
         [1., 1.],
         [0., 1.],
         [0., 0. - epsilon]
+    ]
+
+    weights = [1, 1, 1, 1, 1]
+    knots = [0, 1, 2, 3, 4]
+    multiplicities = [2, 1, 1, 1, 2]
+
+    square = NURBsCurve(
+        points,
+        weights,
+        knots,
+        multiplicities,
+        1
+    )
+    square.set_uniform_lc(lc)
+
+    return square
+
+def unit_square2(l, epsilon, lc):
+    points = [
+        [-epsilon, -epsilon],
+        [l+epsilon, -epsilon],
+        [l+epsilon, l+epsilon],
+        [-epsilon, l+epsilon],
+        [-epsilon, -epsilon]
     ]
 
     weights = [1, 1, 1, 1, 1]
@@ -108,7 +136,8 @@ def split_unit_square(epsilon, lc):
 # geom.model_to_fenics(show_mesh=True)
 # geom.create_function_space("Lagrange", 3)
 
-def circle(r, lc):
+def circle(r, epsilon, lc):
+    r = r + epsilon
     points = [
         [r, 0],
         [r, r],
@@ -144,3 +173,36 @@ def circle(r, lc):
 # geom.add_bspline_groups([[10]])
 # geom.model_to_fenics(show_mesh=True)
 # geom.create_function_space("Lagrange", 3)
+
+class FauxGeom():
+    def init(self):
+        self.gmsh = None
+        self.V = None
+        self.msh = None
+        self.facet_tags = None
+
+
+def circle2(r, epsilon, lc, show_mesh=False):
+    geom = FauxGeom()
+    geom.gmsh = gmsh
+    geom.gmsh.initialize()
+    geom.gmsh.model.remove_physical_groups()
+    geom.gmsh.model.remove()
+
+    gmsh.option.set_number("Mesh.MeshSizeFactor", lc)
+    circle = geom.gmsh.model.occ.add_circle(0, 0, 0, r+epsilon)
+    circle_loop = geom.gmsh.model.occ.add_curve_loop([circle])
+    plane = gmsh.model.occ.add_plane_surface([circle_loop])
+    geom.gmsh.model.occ.synchronize()
+    geom.gmsh.model.add_physical_group(2, [plane], 9)
+    geom.gmsh.model.add_physical_group(1, [circle_loop], 9)
+    geom.gmsh.model.mesh.generate(2)
+    geom.msh, _, geom.facet_tags = gmshio.model_to_mesh(geom.gmsh.model, MPI.COMM_WORLD, 0)
+
+    if show_mesh and '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
+
+    return geom
+
+
+# circle2(10, 0.5, 1e-1)

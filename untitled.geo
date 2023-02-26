@@ -61,3 +61,7 @@ Line(23) = {2, 7};
 //+
 SetFactory("OpenCASCADE");
 Rectangle(5) = {0.9, 1.4, 0.5, 1, 0.5, 0};
+//+
+SetFactory("OpenCASCADE");
+//+
+Circle(2) = {-12, 2.5, 0, 0.5, 0, 2*Pi};

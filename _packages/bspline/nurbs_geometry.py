@@ -61,7 +61,7 @@ class NURBsGeometry:
 
     def model_to_fenics(self, comm=MPI.COMM_WORLD, rank=0, show_mesh=False):
         self.model.mesh.generate(self.dim)
-        self.msh, self.cell_markers, self.facet_markers = gmshio.model_to_mesh(self.model, comm, rank)
+        self.msh, self.cell_markers, self.facet_tags = gmshio.model_to_mesh(self.model, comm, rank)
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()
