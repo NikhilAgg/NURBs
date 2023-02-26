@@ -5,6 +5,7 @@ from dolfinx.io import gmshio
 from mpi4py import MPI
 from dolfinx import fem, mesh
 from scipy.interpolate import LinearNDInterpolator
+import ufl
 
 class NURBsGeometry:
     def __init__(self, bsplines = []):
@@ -100,6 +101,12 @@ class NURBsGeometry:
         degree = degree or self.degree
         cell_type = cell_type or self.cell_type
         return self.function_from_params(dim, get_displacement, degree, cell_type)
+
+    
+    def get_normalised_displacement_field(self, typ, bspline_ind, param_ind, flip=False, degree=None, cell_type=None):
+        C = self.get_displacement_field(typ, bspline_ind, param_ind, flip, degree, cell_type)
+        C_mag = fem.assemble_scalar(C*ufl.dS)
+        return C/C_mag
 
     
     def function_from_params(self, dim, func, degree=None, cell_type=None):

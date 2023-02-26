@@ -42,7 +42,7 @@ geom = NURBs2DGeometry([[circle]])
 geom.generate_mesh(show_mesh=False)
 geom.add_bspline_groups([[1]])
 geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
-geom.create_function_space("Lagrange", 3)
+geom.create_function_space("Lagrange", 2)
 geom.create_node_to_param_map()
 ds = ufl.Measure("ds", domain=geom.msh, subdomain_data=geom.facet_markers)
 

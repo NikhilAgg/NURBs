@@ -298,3 +298,21 @@ def plot_mesh(mesh, V=None, func = None):
         pass
         
     plotter.show()
+
+
+def plot_over_line(mesh, V, func, p1, p2, res=100):
+    plotter = pyvista.Plotter()
+    topology, cell_types, geometry = plot.create_vtk_mesh(mesh, mesh.topology.dim)
+    grid = pyvista.UnstructuredGrid(topology, cell_types, geometry)
+    plotter.add_mesh(grid)
+
+    u_topology, u_cell_types, u_geometry = plot.create_vtk_mesh(V)
+    u_grid = pyvista.UnstructuredGrid(u_topology, u_cell_types, u_geometry)
+    u_grid.point_data["f"] = func.x.array.real
+    u_grid.set_active_scalars("f")
+
+    p_sim = u_grid.sample_over_line(p1, p2, resolution=res).point_data["f"]
+
+    x_line = np.linspace(0, 1, res)
+    plt.plot(x_line, p_sim, label="Numerical")
+    plt.show()

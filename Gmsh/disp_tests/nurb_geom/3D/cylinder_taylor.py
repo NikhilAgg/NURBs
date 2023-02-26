@@ -94,13 +94,13 @@ def func(epsilon_p, epsilon_w, j):
 x= [0]
 y1 = [0]
 y2 = [0]
-ep_step = 0.02
+ep_step = 0.01
 cache = False
 
 if cache:
     pass
 else:
-    for i in range(1, 10):
+    for i in range(1, 5):
         print(f"\n\nInteration {i}\n-----------------------------------")
         epsilon_w = ep_step*i
         epsilon_p = [0, epsilon_w, 0]
