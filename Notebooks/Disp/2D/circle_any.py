@@ -25,9 +25,10 @@ from bspline.nurbs_geometry import NURBs2DGeometry
 from dolfinx_utils.utils import *
 
 
-def create_mesh(r, epsilon, lc, degree):
-    square = circle(r, epsilon, lc)
+def create_mesh(r, epsilon, lc, degree, typ, bspline_ind, param_ind):
+    square = circle(r, 0, lc)
     geom = NURBs2DGeometry([[square]])
+    edit_param_2d(geom, typ, bspline_ind, param_ind, epsilon)
     geom.model.remove_physical_groups()
     geom.model.remove()
     geom.generate_mesh()
@@ -68,10 +69,10 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     return [p, p_adj]
 
 
-def find_eigenvalue(r, epsilon):
+def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(r, epsilon, 1e-1, degree)
+    geom = create_mesh(r, epsilon, 1e-2, degree, typ, bspline_ind, param_ind)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {9: {'Dirichlet'}}
@@ -99,12 +100,11 @@ def find_eigenvalue(r, epsilon):
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c):
+def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    for i in range(8):
-        C += np.dot(geom.get_displacement_field("control point", (0, 0), [i], flip=True), (np.array(geom.bsplines[0][0].ctrl_points[i])/r))
+    C = geom.get_displacement_field(typ, bspline_ind, [param_ind], flip=True)[0]
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -113,11 +113,14 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c):
 
 cache = True
 ep_step = 0.001
-r = 1
+r = 1.
+param_ind = 1
+typ = "control point"
+bspline_ind = (0, 0)
 
 
-omega, p, p_adj, geom, ds, c = find_eigenvalue(r, 0)
-dw = find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c)
+omega, p, p_adj, geom, ds, c = find_eigenvalue(r, 0, typ, bspline_ind, param_ind)
+dw = find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind)
 x_points = []
 y_points = []
 omegas = [omega.real]
@@ -125,33 +128,21 @@ print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
 
 
 if cache:
-    # #1e-1
-    # x = [1e-06, 4e-06, 9e-06, 1.6e-05, 2.5e-05, 3.6e-05, 4.9000000000000005e-05, 6.4e-05, 8.100000000000002e-05]
-    # y = [2.594510417236809e-05, 5.671992910494944e-05, 2.9430358512060745e-05, 6.982335654349969e-05, 0.00011497357904706809, 0.00016486493911673644, 0.00021947309354771946, 0.0002788165260208253, 0.00034284961498329963]
-    # delta_ws = [-2.4044751543783605, -2.399645433618147, -2.4577098291436172, -2.3900272605192896, -2.38527003604716, -2.38052889848106, -2.3758121041197455, -2.3710768260776227, -2.3663871695882577]
-    
-
-    # #1e-1 with C
-    # x_points = [1e-06, 4e-06, 9e-06, 1.6e-05, 2.5e-05, 3.6e-05, 4.9000000000000005e-05, 6.4e-05, 8.100000000000002e-05]
-    # y_points = [1.2622069023083583e-05, 2.0414417285953904e-05, 8.627116107429427e-05, 8.4445336238307e-05, 7.78622869301894e-05, 6.653810005597359e-05, 5.049711882044311e-05, 2.972085954278808e-05, 4.254943775768016e-06]
-
-    # #2e-2
-    # x = [1e-06, 4e-06, 9e-06, 1.6e-05, 2.5e-05, 3.6e-05, 4.9000000000000005e-05, 6.4e-05, 8.100000000000002e-05]
-    # y = [9.640006767040483e-06, 2.4076166141592283e-05, 4.159301997168092e-05, 6.558011396408554e-05, 9.431732526576052e-05, 0.0001277956934545247, 0.00016600027844299037, 0.00020724279953235683, 0.00025485362129385944]
-
-    # #1e-2
+    #1e-2
     x_points = [1e-06, 4e-06, 9e-06, 1.6e-05, 2.5e-05, 3.6e-05, 4.9000000000000005e-05, 6.4e-05, 8.100000000000002e-05]
-    y_points = [4.826942040988928e-06, 1.438578614194018e-05, 2.8725946768262157e-05, 4.7895966754595704e-05, 7.175578845368229e-05, 0.00010035429232609257, 0.00013373921033287342, 0.00017177241692258732, 0.00021456366712740635]
+    y_points = [1.5595741017592043e-07, 4.032631932177923e-07, 7.419609382579057e-07, 1.1720353184454016e-06, 1.693486987923605e-06, 2.306118346090077e-06, 3.010134360987302e-06, 3.805322903190143e-06, 4.6918116816531234e-06]
+    delta_ws = [-0.10918531041603785, -0.1090939620431719, -0.10900257008117364, -0.10891119344602629, -0.10881981615673553, -0.10872863646804731, -0.10863725181131656, -0.10854607928401094, -0.1084547790477508]
 
-    #1e-2 with C
-    # x_points = [1e-06, 4e-06, 9e-06, 1.6e-05, 2.5e-05, 3.6e-05, 4.9000000000000005e-05, 6.4e-05, 8.100000000000002e-05]
-    # y_points = [9.997600288066087e-07, 6.73142211757554e-06, 1.7244400731715633e-05, 3.2587238705866425e-05, 5.261987839277199e-05, 7.739120025299952e-05, 0.00010694893624759935, 0.00014115496082512877, 0.00018011902901776677]
-    # delta_ws = [-2.402443175266278, -2.3977112732063155, -2.3929299566809448, -2.388100097320933, -2.3834102956081793, -2.3786716134348573, -2.373885199300485, -2.3692369107175537, -2.3644788671024486]
 
+    #1e-2 ep 1e-8
+    # x = [1.0000000000000001e-16, 4.0000000000000004e-16, 9.000000000000002e-16, 1.6000000000000002e-15, 2.4999999999999996e-15, 3.600000000000001e-15, 4.900000000000001e-15, 6.400000000000001e-15, 8.1e-15]
+    # y = [7.769495305920951e-13, 2.61571636193569e-12, 2.97973221317926e-11, 4.172600383913546e-12, 5.561029840549736e-12, 1.3994676017761073e-11, 3.7941091893861105e-11, 6.803767120437525e-12, 1.1877692929618557e-11]
+    # delta_ws = [-1.0941896277927299e-06, -1.0952514450934814e-06, -1.120594284031995e-06, -1.0594427557464314e-06, -1.092024248805501e-06, -1.1129683841204496e-06, -1.1173590941382372e-06, -1.0486678192478394e-06, -1.0883387524529553e-06]
 else:
     for i in range(1, 10):
-        epsilon = 0.001*i
-        omega_new = find_eigenvalue(r, epsilon)[0]
+        epsilon = 0.00000001*i
+        epsilon_p = [epsilon, 0]
+        omega_new = find_eigenvalue(r, epsilon_p, typ, bspline_ind, param_ind)[0]
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
         y_points.append(abs(Delta_w_FD - dw*epsilon))

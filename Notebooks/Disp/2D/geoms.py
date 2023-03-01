@@ -165,7 +165,7 @@ def circle(r, epsilon, lc):
 
     return circle
 
-# circle = circle(1, 1e-2)
+# circle = circle(1, 0, 1e-2)
 # geom = NURBs2DGeometry([[circle]])
 # geom.model.remove_physical_groups()
 # geom.model.remove()
@@ -206,3 +206,31 @@ def circle2(r, epsilon, lc, show_mesh=False):
 
 
 # circle2(10, 0.5, 1e-1)
+
+def edit_param_2d(geom, typ, bspline_ind, param_ind, epsilon):
+    i, j = bspline_ind
+    bspline = geom.bsplines[i][j]
+
+    if typ == "control point":
+        bsplines = geom.get_deriv_bsplines("control point", bspline_ind, [param_ind])
+        for bspline in bsplines:
+            params = bsplines[bspline]
+            for param_inds in params:
+                    geom.bsplines[bspline[0]][bspline[1]].ctrl_points[param_inds[0]] += epsilon
+
+    elif typ == "weight":
+        bspline.weights[param_ind] += epsilon
+
+    return geom
+
+# circle = circle(1, 0, 1e-2)
+# geom = NURBs2DGeometry([[circle]])
+# edit_param_2d(geom, "weight", (0, 0), 0, 4)
+# geom.model.remove_physical_groups()
+# geom.model.remove()
+# geom.generate_mesh()
+# geom.add_bspline_groups([[10]])
+# geom.model_to_fenics(show_mesh=True)
+# geom.create_function_space("Lagrange", 3)
+
+
