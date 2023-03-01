@@ -112,7 +112,7 @@ ri = 1.
 l = 3.
 bspline_ind = (0, 0)
 param_ind = [0, 0]
-typ = 'weight'
+typ = 'control point'
 
 if typ == "control point":
     ep_list = np.array([0., 0., 1.])
