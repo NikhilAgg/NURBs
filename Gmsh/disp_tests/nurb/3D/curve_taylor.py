@@ -65,7 +65,7 @@ s = np.linspace(0, 1, n)
 y = np.array([circle.calculate_point(u, v) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
 norms = np.array([circle.get_unit_normal(u, v) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
 dp = np.array([circle.get_displacement("control point", u, v, 2, 2) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
-dw = np.array([circle.get_displacement("weight", u, v, 2, 2) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
+dw = np.array([circle.get_displacement("weight", u, v, 2, 2, tie=False) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
 
 def func(epsilon_point, epsilon_w):
     print(f"{epsilon_w}\n-----------------------------------")

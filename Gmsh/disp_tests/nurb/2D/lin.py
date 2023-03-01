@@ -25,8 +25,8 @@ circle.set_uniform_lc(1e-2)
 
 t = np.linspace(0, 4, 1000)
 y = np.array([circle.calculate_point(u) for u in t])
-dy = np.array([circle.get_displacement("control point", u, 3) for u in t])
-dx = np.array([circle.get_displacement("control point", u, 1) for u in t])
+dy = np.array([circle.get_displacement("control point", u, 3, tie=True) for u in t])
+dx = np.array([circle.get_displacement("control point", u, 1, tie=True) for u in t])
 print(np.trapz(np.array(dy)[:, 1], x=np.array(y)[:, 0]))
 
 # plt.title("Displacement field for a L segement with respect to control points at the mid-points")
@@ -39,8 +39,8 @@ plt.legend()
 plt.show()
 
 y = np.array([circle.calculate_point(u) for u in t])
-dy = np.array([circle.get_displacement("control point", u, 3, flip=True) for u in t])
-dx = np.array([circle.get_displacement("control point", u, 1, flip=True) for u in t])
+dy = np.array([circle.get_displacement("control point", u, 3, flip=True, tie=True) for u in t])
+dx = np.array([circle.get_displacement("control point", u, 1, flip=True, tie=True) for u in t])
 print(np.trapz(np.array(dy)[:, 1], x=np.array(y)[:, 0]))
 
 # plt.title("Flipped displacement field for a L segement with respect to control points at the mid-points")

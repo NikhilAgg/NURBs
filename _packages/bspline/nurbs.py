@@ -35,6 +35,12 @@ class NURBsCurve:
 
     def is_periodic(self):
         return np.all(self.ctrl_points[0] == self.ctrl_points[-1])
+    
+    def is_completely_periodic(self):
+         if np.all(self.ctrl_points[0] == self.ctrl_points[-1]) and self.weights[0] == self.weights[-1]:
+              return True
+         else:
+              return False
 
     
     def get_periodic_multiplicities(self):
@@ -134,21 +140,23 @@ class NURBsCurve:
         return curvature
 
 
-    def get_displacement(self, typ, u, i_deriv, flip=False):
+    def get_displacement(self, typ, u, i_deriv, flip=False, tie=True):
         unit_norm = self.get_unit_normal(u, flip=flip)
-        
+
         if typ == "control point":
             der = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
 
-            if (i_deriv == 0) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
-                der += self.derivative_wrt_ctrl_point(self.n-1, u)[0]
-            elif (i_deriv == self.n-1) and np.all(self.ctrl_points[0] == self.ctrl_points[-1]):
-                der += self.derivative_wrt_ctrl_point(0, u)[0]
+            if tie and self.is_periodic() and (i_deriv == 0 or i_deriv == self.n-1):
+                der += self.derivative_wrt_ctrl_point(self.n - i_deriv - 1, u)[0]   #self.n - i_deriv - 1 gives self.n -1 if i_deriv is 0 and 0 if _deriv if self.n-1
 
             return unit_norm * der
             
         elif typ == "weight":
             der = self.derivative_wrt_ctrl_point(i_deriv, u)[1]
+
+            if tie and self.is_completely_periodic() and (i_deriv == 0 or i_deriv == self.n-1):
+                der += self.derivative_wrt_ctrl_point(self.n - i_deriv - 1, u)[1]   #self.n - i_deriv - 1 gives self.n -1 if i_deriv is 0 and 0 if _deriv if self.n-1
+
             return np.dot(der, unit_norm)
 
         elif typ == "knot":
@@ -488,25 +496,31 @@ class NURBsSurface:
         return curvature
 
     
-    def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False):
-        if self.ctrl_points_dict == {}:
-            self.create_ctrl_point_dict()
-
+    def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False, tie=True):
+        
         unit_norm = self.get_unit_normal(u, v, flip=flip)
         if typ == "control point":
 
-            point = self.ctrl_points[i_deriv][j_deriv]
-            if tuple(point) in self.ctrl_points_dict:
+            if tie:
                 der = np.zeros(self.dim)
-                for i, j in self.ctrl_points_dict[tuple(point)]:
-                    magnitude = self.derivative_wrt_ctrl_point(i, j, u, v)[0]
-                    der += magnitude
+                for i, j in self.get_matching_points(i_deriv, j_deriv):
+                    der += self.derivative_wrt_ctrl_point(i, j, u, v)[0]
+            else:
+                 der = self.derivative_wrt_ctrl_point(i_deriv, j_deriv, u, v)[0]
 
             return unit_norm * der
 
         elif typ == "weight":
-            der = self.derivative_wrt_ctrl_point(i_deriv, j_deriv, u, v)[1]
+
+            if tie:
+                der = 0
+                for i, j in self.get_matching_points(i_deriv, j_deriv):
+                    der += self.derivative_wrt_ctrl_point(i, j, u, v)[1]
+            else:
+                der = self.derivative_wrt_ctrl_point(i_deriv, j_deriv, u, v)[1]
+
             return np.dot(der, unit_norm)
+        
         elif typ == "knot":
             raise NameError("Not implemented")
         else:
@@ -521,6 +535,29 @@ class NURBsSurface:
                 else:
                     self.ctrl_points_dict[tuple(point)] = [(i, j)]
 
+    
+    def get_matching_points(self, i, j):
+        if self.ctrl_points_dict == {}:
+            self.create_ctrl_point_dict()
+
+        point = self.ctrl_points[i][j]
+        if tuple(point) in self.ctrl_points_dict:
+             return self.ctrl_points_dict[tuple(point)]
+        
+
+    def get_matching_points_and_weights(self, i, j):
+        if self.ctrl_points_dict == {}:
+            self.create_ctrl_point_dict()
+
+        matches = []
+        point = self.ctrl_points[i][j]
+        if tuple(point) in self.ctrl_points_dict:
+             for k, l in self.ctrl_points_dict[tuple(point)]:
+                  if self.weights[i][j] == self.weights[k][l]:
+                       matches.append((k, l))
+
+        return matches
+            
 
     def calculate_num_and_den_derivatives(self, u, v, k):
         A_ders = np.zeros((k+1, k+1, self.dim))

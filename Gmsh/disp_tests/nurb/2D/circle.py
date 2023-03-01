@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 
 r = 3
-n=200000
+n=2000
 points = [
     [r, 0],
     [r, r],

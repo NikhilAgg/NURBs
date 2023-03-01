@@ -32,7 +32,7 @@ t = np.linspace(0, 1, 1000)
 y = np.array([circle.calculate_point(u) for u in t])
 norms = np.array([circle.get_unit_normal(u, flip=flip) for u in t])
 dp = np.array([circle.get_displacement("control point", u, 2, flip=flip) for u in t])
-dw = np.array([circle.get_displacement("weight", u, 2, flip=flip) for u in t])
+dw = np.array([circle.get_displacement("weight", u, 2, flip=flip, tie=False) for u in t])
 ds = [0]
 for i in range(1, len(y)):
     ds.append(ds[i-1] + np.linalg.norm(y[i] - y[i-1]))

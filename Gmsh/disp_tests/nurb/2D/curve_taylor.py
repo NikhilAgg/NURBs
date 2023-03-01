@@ -57,7 +57,7 @@ t = np.linspace(0, knots[-1], n)
 y = np.array([circle.calculate_point(u) for u in t])
 norms = np.array([circle.get_unit_normal(u, flip=flip) for u in t])
 dp = np.array([circle.get_displacement("control point", u, k, flip=flip) for u in t])
-dw = np.array([circle.get_displacement("weight", u, k, flip=flip) for u in t])
+dw = np.array([circle.get_displacement("weight", u, k, flip=flip, tie=False) for u in t])
 
 s = [0]
 s.append(get_dis(y[1], y[2], y[3], which="forward"))

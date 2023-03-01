@@ -45,7 +45,7 @@ def func(n, epsilon_point, epsilon_w, k):
     y = np.array([circle.calculate_point(u) for u in t])
     norms = np.array([circle.get_unit_normal(u, flip=flip) for u in t])
     dp = np.array([circle.get_displacement("control point", u, k, flip=flip) for u in t])
-    dw = np.array([circle.get_displacement("weight", u, k, flip=flip) for u in t])
+    dw = np.array([circle.get_displacement("weight", u, k, flip=flip, tie=False) for u in t])
     s = [0]
     for i in range(1, len(y)):
         s.append(s[i-1] + np.linalg.norm(y[i] - y[i-1]))
