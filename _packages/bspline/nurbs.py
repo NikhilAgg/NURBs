@@ -71,7 +71,7 @@ class NURBsCurve:
         i = find_span(self.n, self.degree, u, self.U)
 
         if i < i_deriv or i > i_deriv + self.degree:
-            return [0, [0] * self.dim]
+            return [0, np.zeros(self.dim)]
             
         N = nurb_basis(i, self.degree, u, self.U)
         

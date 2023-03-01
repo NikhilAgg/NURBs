@@ -114,15 +114,15 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, 
 cache = False
 ep_step = 0.001
 r = 1.
-param_ind = 1
+param_ind = 0
 typ = "weight"
 bspline_ind = (0, 0)
 
 if typ == "control point":
     tie = True
-    ep_list = np.array([0., 1.])
+    ep_list = np.array([1., 0.])
 else:
-    tie = False
+    tie = True
     ep_list = 1
 
 

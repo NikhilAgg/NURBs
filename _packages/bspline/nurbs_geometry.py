@@ -174,7 +174,7 @@ class NURBsGeometry:
                 elif typ == "weight":
                     deriv_params = []
                     for params in param_inds:
-                        if bspline.weights[params[0]][params[1]] == weight:
+                        if bspline.weights[params[0]] == weight or bspline.weights[params[0]][params[1]] == weight:
                             deriv_params.append(params)
                     
                     deriv_bsplines[(i, j)] = deriv_params
