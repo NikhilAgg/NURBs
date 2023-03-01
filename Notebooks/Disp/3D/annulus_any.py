@@ -94,14 +94,11 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind):
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind):
+def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
 
     geom.create_node_to_param_map()
-    if typ == "control point":
-        C = geom.get_displacement_field("control point", bspline_ind, param_ind)[0]
-    elif typ == "weight":
-        C = geom.get_displacement_field("weight", bspline_ind, param_ind)
+    C = np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -123,7 +120,7 @@ elif typ == "weight":
     ep_list = 1
 
 omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
-dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind)
+dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
 x_points = []
 y_points = []
 omegas = [omega.real]

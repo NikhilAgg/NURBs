@@ -100,11 +100,11 @@ def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie):
+def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie, ep_list):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    C = geom.get_displacement_field(typ, bspline_ind, [param_ind], flip=True, tie=tie)[0]
+    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], flip=True, tie=tie), ep_list)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -115,17 +115,19 @@ cache = False
 ep_step = 0.001
 r = 1.
 param_ind = 1
-typ = "control point"
+typ = "weight"
 bspline_ind = (0, 0)
 
 if typ == "control point":
     tie = True
+    ep_list = np.array([0., 1.])
 else:
     tie = False
+    ep_list = 1
 
 
 omega, p, p_adj, geom, ds, c = find_eigenvalue(r, 0, typ, bspline_ind, param_ind)
-dw = find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie)
+dw = find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie, ep_list)
 x_points = []
 y_points = []
 omegas = [omega.real]
@@ -145,8 +147,7 @@ if cache:
 else:
     for i in range(1, 10):
         epsilon = ep_step*i
-        epsilon_p = [epsilon, 0]
-        omega_new = find_eigenvalue(r, epsilon_p, typ, bspline_ind, param_ind)[0]
+        omega_new = find_eigenvalue(r, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
         y_points.append(abs(Delta_w_FD - dw*epsilon))
