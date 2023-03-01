@@ -502,7 +502,7 @@ class NURBsSurface:
         if typ == "control point":
 
             if tie:
-                der = np.zeros(self.dim)
+                der = 0
                 for i, j in self.get_matching_points(i_deriv, j_deriv):
                     der += self.derivative_wrt_ctrl_point(i, j, u, v)[0]
             else:
@@ -513,7 +513,7 @@ class NURBsSurface:
         elif typ == "weight":
 
             if tie:
-                der = 0
+                der = np.zeros(self.dim)
                 for i, j in self.get_matching_points(i_deriv, j_deriv):
                     der += self.derivative_wrt_ctrl_point(i, j, u, v)[1]
             else:

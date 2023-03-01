@@ -79,8 +79,8 @@ class NURBsGeometry:
         return self.V
 
 
-    def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False, degree=None, cell_type=None):
-        deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind)
+    def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False, tie=True, degree=None, cell_type=None):
+        deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind, tie)
 
         if typ == "control point":
             dim = self.dim
@@ -94,7 +94,7 @@ class NURBsGeometry:
                 if tuple(indices) in deriv_bsplines: 
                     i, j = indices
                     param_ind = deriv_bsplines[tuple(indices)][0]
-                    C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip)
+                    C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip, tie)
 
             return C
 
@@ -103,8 +103,8 @@ class NURBsGeometry:
         return self.function_from_params(dim, get_displacement, degree, cell_type)
 
     
-    def get_normalised_displacement_field(self, typ, bspline_ind, param_ind, flip=False, degree=None, cell_type=None):
-        C = self.get_displacement_field(typ, bspline_ind, param_ind, flip, degree, cell_type)
+    def get_normalised_displacement_field(self, typ, bspline_ind, param_ind, flip=False, tie=True, degree=None, cell_type=None):
+        C = self.get_displacement_field(typ, bspline_ind, param_ind, flip, tie, degree, cell_type)
         C_mag = fem.assemble_scalar(C*ufl.dS)
         return C/C_mag
 
@@ -150,16 +150,18 @@ class NURBsGeometry:
         return C
 
     
-    def get_deriv_bsplines(self, typ, bspline_ind, param_ind):
-        if typ != "control point":
+    def get_deriv_bsplines(self, typ, bspline_ind, param_ind, tie=True):
+        if not tie:
             return {tuple(bspline_ind): [param_ind]}
 
         deriv_bsplines = {}
         i, j = bspline_ind
         if len(param_ind) == 1:
             point = self.bsplines[i][j].ctrl_points[param_ind[0]]
+            weight = self.bsplines[i][j].weights[param_ind[0]]
         elif len(param_ind) == 2:
             point = self.bsplines[i][j].ctrl_points[param_ind[0]][param_ind[1]]
+            weight = self.bsplines[i][j].weights[param_ind[0]][param_ind[1]]
 
         for j, bspline in enumerate(self.bsplines[i]):
             if bspline.ctrl_points_dict == {}:
@@ -167,7 +169,15 @@ class NURBsGeometry:
 
             if tuple(point) in bspline.ctrl_points_dict:
                 param_inds = bspline.ctrl_points_dict[tuple(point)]
-                deriv_bsplines[(i, j)] =  param_inds
+                if typ == "control point":
+                    deriv_bsplines[(i, j)] =  param_inds
+                elif typ == "weight":
+                    deriv_params = []
+                    for params in param_inds:
+                        if bspline.weights[params[0]][params[1]] == weight:
+                            deriv_params.append(params)
+                    
+                    deriv_bsplines[(i, j)] = deriv_params
 
         return deriv_bsplines
 

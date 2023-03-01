@@ -72,7 +72,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(r, epsilon, 1e-2, degree, typ, bspline_ind, param_ind)
+    geom = create_mesh(r, epsilon, 1e-1, degree, typ, bspline_ind, param_ind)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {9: {'Dirichlet'}}
@@ -100,31 +100,35 @@ def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind):
+def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    C = geom.get_displacement_field(typ, bspline_ind, [param_ind], flip=True)[0]
+    C = geom.get_displacement_field(typ, bspline_ind, [param_ind], flip=True, tie=tie)[0]
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
     return dw
 
 
-cache = True
+cache = False
 ep_step = 0.001
 r = 1.
 param_ind = 1
 typ = "control point"
 bspline_ind = (0, 0)
 
+if typ == "control point":
+    tie = True
+else:
+    tie = False
+
 
 omega, p, p_adj, geom, ds, c = find_eigenvalue(r, 0, typ, bspline_ind, param_ind)
-dw = find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind)
+dw = find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie)
 x_points = []
 y_points = []
 omegas = [omega.real]
-print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
 
 
 if cache:
@@ -140,7 +144,7 @@ if cache:
     # delta_ws = [-1.0941896277927299e-06, -1.0952514450934814e-06, -1.120594284031995e-06, -1.0594427557464314e-06, -1.092024248805501e-06, -1.1129683841204496e-06, -1.1173590941382372e-06, -1.0486678192478394e-06, -1.0883387524529553e-06]
 else:
     for i in range(1, 10):
-        epsilon = 0.00000001*i
+        epsilon = ep_step*i
         epsilon_p = [epsilon, 0]
         omega_new = find_eigenvalue(r, epsilon_p, typ, bspline_ind, param_ind)[0]
         Delta_w_FD = omega_new.real - omega.real
@@ -158,3 +162,5 @@ plt.plot(x_points, y_points)
 plt.xlabel('$\epsilon^2$')
 plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
 plt.show()
+
+print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")

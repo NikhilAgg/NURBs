@@ -26,17 +26,6 @@ from dolfinx_utils.utils import *
 import time
 
 
-def get_weight_C(geom, bspline_ind, param_ind):
-    Cw = fem.Function(geom.V)
-    bsplines = geom.get_deriv_bsplines("control point", bspline_ind, param_ind)
-    for bspline in bsplines:
-        params = bsplines[bspline]
-        for param_inds in params:
-            Cw += geom.get_displacement_field("weight", bspline, param_inds)
-
-    return Cw
-
-
 def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree):
     start, cylinder, end, inner_cylinder = annulus(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
@@ -112,7 +101,7 @@ def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, pa
     if typ == "control point":
         C = geom.get_displacement_field("control point", bspline_ind, param_ind)[0]
     elif typ == "weight":
-        C = get_weight_C(geom, bspline_ind, param_ind)
+        C = geom.get_displacement_field("weight", bspline_ind, param_ind)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 

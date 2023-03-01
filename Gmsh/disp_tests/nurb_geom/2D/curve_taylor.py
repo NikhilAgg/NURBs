@@ -44,14 +44,14 @@ geom.add_bspline_groups([[1]])
 geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
 geom.create_function_space("Lagrange", 2)
 geom.create_node_to_param_map()
-ds = ufl.Measure("ds", domain=geom.msh, subdomain_data=geom.facet_markers)
+ds = ufl.Measure("ds", domain=geom.msh, subdomain_data=geom.facet_tags)
 
 Ones = fem.Function(geom.V)
 Ones.interpolate(lambda x: x[0]*0+1)
 area = fem.assemble_scalar(fem.form((Ones)*ufl.dx))
 
 Cp = geom.get_displacement_field("control point", (0, 0), [j])
-Cw = geom.get_displacement_field("weight", (0, 0), [j])
+Cw = geom.get_displacement_field("weight", (0, 0), [j], tie=False)
 
 geom.model.remove_physical_groups()
 geom.model.remove()
