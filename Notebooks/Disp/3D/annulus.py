@@ -61,7 +61,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(ro, ri, l, ro_ep, ri_ep, l_ep):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, ro_ep, ri_ep, l_ep, 2e-1, degree)
+    geom = create_mesh(ro, ri, l, ro_ep, ri_ep, l_ep, 5e-1, degree)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {1: {'Dirichlet'},
@@ -124,7 +124,7 @@ ep_step = 0.001
 ro = 2
 ri = 1
 l = 3
-typ = 'l'
+typ = 'ro'
 
 if typ == "ro":
     ep_list = np.array([1., 0., 0.])
@@ -156,10 +156,10 @@ else:
         print(f"delta_ws = {[(omegas[i] - omegas[i-1])/ep_step for i in range(1, len(omegas))]}")
 
 
+print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
 plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')
 plt.plot(x_points, y_points)
 plt.xlabel('$\epsilon^2$')
 plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
 plt.show()
 
-print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")

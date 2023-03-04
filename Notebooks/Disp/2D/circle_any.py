@@ -72,7 +72,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(r, epsilon, 1e-1, degree, typ, bspline_ind, param_ind)
+    geom = create_mesh(r, epsilon, 5e-3, degree, typ, bspline_ind, param_ind)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {9: {'Dirichlet'}}
@@ -132,30 +132,17 @@ x_points = []
 y_points = []
 omegas = [omega.real]
 
+for i in range(1, 6):
+    epsilon = ep_step*i
+    omega_new = find_eigenvalue(r, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
+    Delta_w_FD = omega_new.real - omega.real
+    x_points.append(epsilon**2)
+    y_points.append(abs(Delta_w_FD - dw*epsilon))
+    omegas.append(omega_new.real)
 
-if cache:
-    #1e-2
-    x_points = [1e-06, 4e-06, 9e-06, 1.6e-05, 2.5e-05, 3.6e-05, 4.9000000000000005e-05, 6.4e-05, 8.100000000000002e-05]
-    y_points = [1.5595741017592043e-07, 4.032631932177923e-07, 7.419609382579057e-07, 1.1720353184454016e-06, 1.693486987923605e-06, 2.306118346090077e-06, 3.010134360987302e-06, 3.805322903190143e-06, 4.6918116816531234e-06]
-    delta_ws = [-0.10918531041603785, -0.1090939620431719, -0.10900257008117364, -0.10891119344602629, -0.10881981615673553, -0.10872863646804731, -0.10863725181131656, -0.10854607928401094, -0.1084547790477508]
-
-
-    #1e-2 ep 1e-8
-    # x = [1.0000000000000001e-16, 4.0000000000000004e-16, 9.000000000000002e-16, 1.6000000000000002e-15, 2.4999999999999996e-15, 3.600000000000001e-15, 4.900000000000001e-15, 6.400000000000001e-15, 8.1e-15]
-    # y = [7.769495305920951e-13, 2.61571636193569e-12, 2.97973221317926e-11, 4.172600383913546e-12, 5.561029840549736e-12, 1.3994676017761073e-11, 3.7941091893861105e-11, 6.803767120437525e-12, 1.1877692929618557e-11]
-    # delta_ws = [-1.0941896277927299e-06, -1.0952514450934814e-06, -1.120594284031995e-06, -1.0594427557464314e-06, -1.092024248805501e-06, -1.1129683841204496e-06, -1.1173590941382372e-06, -1.0486678192478394e-06, -1.0883387524529553e-06]
-else:
-    for i in range(1, 10):
-        epsilon = ep_step*i
-        omega_new = find_eigenvalue(r, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
-        Delta_w_FD = omega_new.real - omega.real
-        x_points.append(epsilon**2)
-        y_points.append(abs(Delta_w_FD - dw*epsilon))
-        omegas.append(omega_new.real)
-
-        print(f"x = {x_points}")
-        print(f"y = {y_points}")
-        print(f"delta_ws = {[(omegas[i] - omegas[i-1])/ep_step for i in range(1, len(omegas))]}")
+    print(f"x_points = {x_points}")
+    print(f"y_points = {y_points}")
+    print(f"delta_ws = {[(omegas[i] - omegas[i-1])/ep_step for i in range(1, len(omegas))]}")
 
 
 plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')

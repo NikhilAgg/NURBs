@@ -17,6 +17,25 @@ class NURBsCurve:
 
 
     def initialise_nurb(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None):
+        """
+        Sets the NURBs Parameters to those passed in as arguements. 
+
+        Parameters
+        ----------------------------
+        ctrl_points: list of lists or 2d numpy array
+            A list of the control points for the curve. 
+        weights: list or 1d numpy array
+            A list of weights corresponding to each of the control points defined in the arguement ctrl_points. If none are 
+            given, the weights are all set to 1
+        knots: list
+            A list of the unique knot/node values of the curve
+        multiplicities: list of ints
+            A list of containing the number of times each knot is repeated. Note that the number of unique knot values * sum(multiplicities) must equal
+            the number of control points + degree + 1 and the first and last multiplicity must be equal to degree + 1 to defined a clamped bspline
+        degree: int
+            The degree of the bspline curve
+        """
+
         self.ctrl_points = np.array(ctrl_points)
         self.dim = len(self.ctrl_points[0])
         self.n = len(ctrl_points)
@@ -30,20 +49,58 @@ class NURBsCurve:
         
 
     def set_uniform_lc(self, lc):
+        """
+        Sets lc for each control point to the value passed in. Lc defines the element size near each control point when the 
+        curve is used to defined a mesh using a NURBsGeometry Object 
+
+        Parameters
+        ----------------------------
+        lc: float
+            Element size
+        """
         self.lc = np.ones(self.n) * lc
 
 
     def is_periodic(self):
+        """
+        Returns whether or not the curve is periodic. This is true if the first and last control points are equal. Otherwise it is false
+
+        Returns
+        ----------------------------
+        is_periodic: bool
+            True if the curve is periodic, False otherwise
+        """
         return np.all(self.ctrl_points[0] == self.ctrl_points[-1])
     
+
     def is_completely_periodic(self):
-         if np.all(self.ctrl_points[0] == self.ctrl_points[-1]) and self.weights[0] == self.weights[-1]:
-              return True
-         else:
-              return False
+        """
+        Returns whether or not the curve is completely periodic. This is true if the first and last control points are equal and 
+        if the first and last weights are equal. Otherwise it is false
+
+        Returns
+        ----------------------------
+        is_completely_periodic: bool
+            True if the curve is completely periodic, False otherwise
+        """
+        if np.all(self.ctrl_points[0] == self.ctrl_points[-1]) and self.weights[0] == self.weights[-1]:
+            return True
+        else:
+            return False
 
     
     def get_periodic_multiplicities(self):
+        """
+        If the curve is periodic (the first and last control points are the same), then this function returns the periodic 
+        multiplicities - aka it removes 1 from both the first and last elements in the multiplicities list. Otherwise it just returns
+        the multiplicities of the curve
+
+        Returns
+        ----------------------------
+        multiplicities: list of int
+            If the curve is periodic returns the periodic multiplicities otherwise returns the unaltered multiplicities of the curve
+        """
+
         multiplicities = self.multiplicities[:]
         if self.is_periodic():
             multiplicities[0] -= 1
@@ -53,9 +110,27 @@ class NURBsCurve:
 
 
     def calculate_point(self, u):
+        """
+        Returns the coordinate of the point at the given value of u.
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u for which the point will be calculated.
+
+        Returns
+        ----------------------------
+        coord: 1d np.array
+            The coordinates of the point. If the u value given is less than the first knot or greater than the last
+            the coordinate 0 is returned.
+        """
+
         P_w = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
 
         i = find_span(self.n, self.degree, u, self.U)
+        if i == -1:
+             return np.zeros(self.dim)
+        
         N = nurb_basis(i, self.degree, u, self.U)
 
         curve = np.zeros(len(P_w[0]))
@@ -68,6 +143,25 @@ class NURBsCurve:
 
 
     def derivative_wrt_ctrl_point(self, i_deriv, u):
+        """
+        Calculated the derivative of the curve with respect to a control point
+
+        Parameters
+        ----------------------------
+        i_deriv: int
+            The index of the control point for which you want to calculate the derivative
+        u: float
+            Value of the parameter u for which at which the derivative will be calculated.
+
+        Returns
+        ----------------------------
+        list [float, 1d numpy array]:
+            A list containing the derivative of the curve with repect to the i_deriv th control point in the first element and the derivative of the 
+            curve with respect to the i_deriv th weight in the second element. The derivative of the curve at a point in general is a vector describing
+            the direction of movement at that point. A float is returned for the derivative of wrt to the control point where the derivative is equal to the float
+            multiplied by the 1 vector.
+        """
+
         i = find_span(self.n, self.degree, u, self.U)
 
         if i < i_deriv or i > i_deriv + self.degree:
@@ -92,6 +186,22 @@ class NURBsCurve:
 
 
     def derivative_wrt_u(self, u, k):
+        """
+        Calculates the derivative of the curve with respect to the parameter u
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u for which at which the derivative will be calculated.
+        k: int
+            The order of the derivative you want to calculate
+
+        Returns
+        ----------------------------
+        ders: np.array
+            A numpy array where each row corresponds to the ith derivative wrt u at the given point u. The last row will contain the kth derivative.
+        """
+         
         A_ders = np.zeros((k+1, self.dim))
         w_ders = np.zeros(k+1)
         ders = np.zeros((k+1, self.dim))
@@ -114,6 +224,22 @@ class NURBsCurve:
 
     
     def get_unit_normal(self, u, flip=False):
+        """
+        Calculates the unit normal to the curve at a given point
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u at which the normal will be found
+        flip: bool
+            If true will return the negative of the calculated normal (default: False)
+
+        Returns
+        ----------------------------
+        unit_norm: np.array
+            The unit normal
+        """
+
         dC = self.derivative_wrt_u(u, 1)[1]
         dC_hat = dC / np.linalg.norm(dC)
 
@@ -128,6 +254,24 @@ class NURBsCurve:
 
     
     def get_curvature(self, u, flip=False):
+        """
+        Calculates the curvature of the curve with respect to the parameter u. The curvature is defined as the divegence of the 
+        unit normal along the curve
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u for which at which the derivative will be calculated.
+        flip: False
+            Multiplies the result by -1. Equivalent to considering the unit normal in the opposite direction to the one calculated.
+            (default: false)
+
+        Returns
+        ----------------------------
+        curvature: float
+            The calculated curvature
+        """
+
         ders = self.derivative_wrt_u(u, 2)
         dC = ders[1]
         d2C = ders[2]
@@ -141,6 +285,32 @@ class NURBsCurve:
 
 
     def get_displacement(self, typ, u, i_deriv, flip=False, tie=True):
+        """
+        Calculates the displacement/derivative of a point in the direction normal to the curve wrt a specified parameter
+
+        Parameters
+        ----------------------------
+        typ: string
+            Either "control point" or "weight" depending on which parameter the displacement field will be calculated wrt.
+        u: float
+            Value of the parameter u at the point at which at which the displacement will be calculated.
+        i_deriv: int
+            The index of the parameter for which you want to calculate the derivative
+        flip: bool
+            If true will consider the displacement in the direction of the opposite unit normal. Note that this is equivalent
+            to multiplying the result by -1 (default: false)
+        tie: bool
+            if true and the NURB is periodic changes to the first and last parameter will be added to find the displacement field if the 
+            points were to both change. If typ == "weight", the first and last weight must also be equal in addition to the curve being periodic.
+            (default: True)
+
+        Returns
+        ----------------------------
+        displacement: np.array or float
+            The displacement of the point. If typ == "control point" then a numpy array is returned where each element is the displacement of the point
+            with respect to the kth coordinate. If typ == "weight", the displacement is a float.
+        """
+
         unit_norm = self.get_unit_normal(u, flip=flip)
 
         if typ == "control point":
@@ -167,14 +337,10 @@ class NURBsCurve:
 
 
     def create_ctrl_point_dict(self):
-        for i, point in enumerate(self.ctrl_points):
-            if tuple(point) in self.ctrl_points_dict:
-                self.ctrl_points_dict.append(i)
-            else:
-                self.ctrl_points_dict[point] = [i]
-
-
-    def create_ctrl_point_dict(self):
+        """
+        Creates a dictionary mapping each control point coordinate to its indicies. The dictionary is stored in self.ctrl_points_dict. Keys for the
+        dictionary are the coordiates as a tuple and the values are a list of indicies
+        """
         self.ctrl_points_dict = {}
         for i, point in enumerate(self.ctrl_points):
                 if tuple(point) in self.ctrl_points_dict:
@@ -184,6 +350,28 @@ class NURBsCurve:
 
 
     def knot_insertion(self, u, r, overwrite=False):
+        """
+        Calculates a new set of control points, weights, knots and multiplicities if the given knot u is inserted into
+        the curve r times with no change the shape of the curve.
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the knot you want to insert
+        r: int
+            Number of times you want to insert the knot
+        overwrite: bool
+            If set to true the parameters of the NURBs curve/object will be set to the calculated new set of parameters
+
+        Returns
+        ----------------------------
+        U: list of floats
+            The modified knot vector.
+        ctrl_points: 2d numpy array
+            The modified control points. 
+        weights: 1d numpy array
+            The modified weights
+        """
         Pw = np.column_stack(((self.ctrl_points.T * self.weights).T, self.weights))
 
         k = find_span(self.n, self.degree, u, self.U)
@@ -226,75 +414,6 @@ class NURBsCurve:
 
         return uq, ctrl_points, weights
 
-        
-    def derivative_wrt_knot(self, n_deriv, u):
-        i = find_span(self.n, self.degree, u, self.U)
-
-        i_deriv_left = sum(self.multiplicities[0:n_deriv])-1
-        i_deriv_right = i_deriv_left + self.multiplicities[n_deriv]
-        if i < i_deriv_right - self.degree - 1 or i > i_deriv_right + self.degree:
-            return np.zeros(self.dim)
-
-        N = nurb_basis(i, self.degree, u, self.U)
-
-        U_bar = self.U.copy()
-        U_bar.insert(i_deriv_right, self.U[i_deriv_right]) #A copy of the knot vector but with the i_deriv th knot repeated one more time
-
-        if u > self.U[i_deriv_right]:
-            N_bar = nurb_basis(i+1, self.degree, u, U_bar)
-            N_bar.insert(0, 0)
-        else:
-            N_bar = nurb_basis(i, self.degree, u, U_bar)
-
-        N_bar.append(0)
-
-        N_deriv_right = []
-        ind, no_nonzero_basis = find_inds(i, self.degree)
-        for j in range(len(N)):
-            if j + ind < i_deriv_right - self.degree - 1 or j + ind > i_deriv_right:
-                N_deriv_right.append(0)
-            elif j + ind == i_deriv_right - self.degree - 1:
-                first_term = N_bar[j+1] / (self.U[j + ind + self.degree + 1] - self.U[j + ind + 1])
-                N_deriv_right.append(first_term)
-            elif j + ind == i_deriv_right:
-                second_term = N_bar[j] / (self.U[j + i] - self.U[j + i - self.degree])
-                N_deriv_right.append(-second_term)
-            else:
-                first_term = N_bar[j+1] / (self.U[j + ind + self.degree + 1] - self.U[j + ind + 1])
-                second_term = N_bar[j] / (self.U[j + ind + self.degree] - self.U[j + ind])
-                N_deriv_right.append(first_term - second_term)
-
-        denom = 0.0
-        first_numerator = 0.0 #This is equal to the summation in the numerator of the first term in the derivative wrt to the knots
-        second_numerator = 0.0
-        second_numerator_sum = 0.0 
-        ind, no_nonzero_basis = find_inds(i, self.degree)
-        for k in range(no_nonzero_basis):
-            denom += N[k] * self.weights[ind + k]
-            first_numerator += N_deriv_right[k] * self.weights[ind + k] * self.ctrl_points[ind + k]
-            second_numerator += N[k] * self.weights[ind + k] * self.ctrl_points[ind + k]
-            second_numerator_sum += N_deriv_right[k] * self.weights[ind + k]
-
-        deriv = first_numerator / denom - (second_numerator * second_numerator_sum) / denom**2
-
-        return deriv
-                
-
-    def plot_nurb(self, u, i, U):
-        j = find_span(self.n, self.degree, u, U)
-
-        N = nurb_basis(j, self.degree, u, U)
-
-        if u > 0.5:
-            pass
-
-        ind, _ = find_inds(j, self.degree)
-        for k in range(len(N)):
-            if ind + k == i:
-                return N[k]
-        
-        return 0
-
 
 
 class NURBsSurface:
@@ -322,10 +441,30 @@ class NURBsSurface:
         
 
     def set_uniform_lc(self, lc):
+        """
+        Sets lc for each control point to the value passed in. Lc defines the element size near each control point when the 
+        surface is used to defined a mesh using a NURBsGeometry Object 
+
+        Parameters
+        ----------------------------
+        lc: float
+            Element size
+        """
         self.lc = np.ones(self.ctrl_points.shape) * lc
 
 
     def is_periodic(self):
+        """
+        Returns whether or not the surface is periodic u and v. The surface is either periodic in u when 
+        the first and last control points are equal for all values of v and vice versa.
+
+        Returns
+        ----------------------------
+        is_u_periodic: bool
+            True if the surface is periodic along u, False otherwise
+        is_v_periodic: bool
+            True if the surface is periodic along v, False otherwise
+        """
         is_u_periodic = True
         is_v_periodic = True
         points = self.ctrl_points
@@ -346,6 +485,19 @@ class NURBsSurface:
 
 
     def get_periodic_multiplicities(self):
+        """
+        If the surface is periodic in either u or v, then this function returns the periodic 
+        multiplicities for either - aka it removes 1 from both the first and last elements in the multiplicities list. Otherwise it just returns
+        the multiplicities of the curve.
+
+        Returns
+        ----------------------------
+        multiplicitiesU: list of int
+            If the curve is periodic in u returns the periodic multiplicities of the u knots otherwise returns the unaltered multiplicities
+        multiplicitiesV: list of int
+            If the curve is periodic in v returns the periodic multiplicities of the v knots otherwise returns the unaltered multiplicities
+        """
+
         is_u_periodic, is_v_periodic = self.is_periodic()
 
         multiplicitiesU = self.multiplicitiesU[:]
@@ -362,7 +514,23 @@ class NURBsSurface:
 
 
 
-    def calculate_point(self, u, v):       
+    def calculate_point(self, u, v): 
+        """
+        Returns the coordinate of the point at the given value of u and v.
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u for which the point will be calculated.
+        v: float
+            Value of the parameter v for which the point will be calculated.
+
+        Returns
+        ----------------------------
+        coord: 1d np.array
+            The coordinates of the point. If the u value given is less than the first knot or greater than the last
+            the coordinate 0 is returned.
+        """      
         i_u = find_span(self.nU, self.degreeU, u, self.U)
         i_v = find_span(self.nV, self.degreeV, v, self.V)
         
@@ -386,6 +554,28 @@ class NURBsSurface:
 
 
     def derivative_wrt_ctrl_point(self, i_deriv, j_deriv, u, v):
+        """
+        Calculated the derivative of the surface with respect to a control point
+
+        Parameters
+        ----------------------------
+        i_deriv: int
+            The first index of the control point for which you want to calculate the derivative
+        j_deriv: int
+            The second index of the control point for which you want to calculate the derivative
+        u: float
+            Value of the parameter u for which at which the derivative will be calculated.
+        v: float
+            Value of the parameter v for which at which the derivative will be calculated.
+
+        Returns
+        ----------------------------
+        list [float, 1d numpy array]:
+            A list containing the derivative of the curve with repect to the (i_deriv, j_deriv) th control point in the first element and the derivative of the 
+            curve with respect to the (i_deriv, j_deriv) th weight in the second element. The derivative of the curve at a point in general is a vector describing
+            the direction of movement at that point. A float is returned for the derivative of wrt to the control point where the derivative is equal to the float
+            multiplied by the 1 vector.
+        """
         i_u = find_span(self.nU, self.degreeU, u, self.U)
         i_v = find_span(self.nV, self.degreeV, v, self.V)
 
@@ -414,6 +604,25 @@ class NURBsSurface:
 
     
     def derivative_wrt_uv(self, u, v, k):
+        """
+        Calculates the derivative of the surface with respect to the parameters u and v
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u for which at which the derivative will be calculated.
+        v: float
+            Value of the parameter v for which at which the derivative will be calculated.
+        k: int
+            The order of the largest derivative you want to calculate
+
+        Returns
+        ----------------------------
+        ders: np.array
+            A numpy array (k+1 x k+1) matrix where each element is contains the derivative of the point with
+            respect to the u i times and v j times. Note that the derivative will be in the form of a vector
+            and therefore the array will have shape (k+1 x k+1 x self.dim)
+        """
         A_ders, w_ders = self.calculate_num_and_den_derivatives(u, v, k)
         ders = np.zeros((k+1, k+1, self.dim))
 
@@ -436,6 +645,23 @@ class NURBsSurface:
 
     
     def get_unit_normal(self, u, v, flip=False):
+        """
+        Calculates the unit normal to the surface at a given point
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u at which the normal will be found
+        v: float
+            Value of the parameter v at which the normal will be found
+        flip: bool
+            If true will return the negative of the calculated normal (default: False)
+
+        Returns
+        ----------------------------
+        unit_norm: np.array
+            The unit normal
+        """
         ders = self.derivative_wrt_uv(u, v, 1)
         norm = np.cross(ders[1][0], ders[0][1])
         unit_norm = norm / np.linalg.norm(norm)
@@ -447,6 +673,25 @@ class NURBsSurface:
 
 
     def get_unit_normal_derivatives(self, ders):
+        """
+        Helper function for calculating the curvature. Calculates the derivative of the unit 
+        normal at a point on the surface wrt to u and v
+
+        Parameters
+        ----------------------------
+        ders: float
+            ders: np.array
+            A numpy array kxk matrix where each element is contains the derivative of the point with
+            respect to the u i times and v j times. Note that the derivative will be in the form of a vector.
+            This matrix must be at least 2x2 and can be generated using the get_derivatives_wrt_uv function.
+
+        Returns
+        ----------------------------
+        dn_du: np.array
+            The derivative of the unit normal wrt to u
+        dn_dv: np.array
+            The derivative of the unit normal wrt to v
+        """
         dS_du = ders[1][0]
         dS_dv = ders[0][1]
         d2S_du2 = ders[2][0]
@@ -470,6 +715,25 @@ class NURBsSurface:
 
 
     def get_curvature(self, u, v, flip=False):
+        """
+        Calculates the curvature of the surface at a point on the surface. The curvature is defined as the divegence of the 
+        unit normal along the surface
+
+        Parameters
+        ----------------------------
+        u: float
+            Value of the parameter u for which at which the curvature will be calculated.
+        v: float
+            Value of the parameter v for which at which the derivative will be calculated.
+        flip: False
+            Multiplies the result by -1. Equivalent to considering the unit normal in the opposite direction to the one calculated.
+            (default: false)
+
+        Returns
+        ----------------------------
+        curvature: float
+            The calculated curvature
+        """
         ders = self.derivative_wrt_uv(u, v, 2)
         dn_du, dn_dv = self.get_unit_normal_derivatives(ders)
 
@@ -497,7 +761,35 @@ class NURBsSurface:
 
     
     def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False, tie=True):
-        
+        """
+        Calculates the displacement/derivative of a point in the direction normal to the surface wrt a specified parameter
+
+        Parameters
+        ----------------------------
+        typ: string
+            Either "control point" or "weight" depending on which parameter the displacement field will be calculated wrt.
+        u: float
+            Value of the parameter u at the point at which at which the displacement will be calculated.
+        v: float
+            Value of the parameter v at the point at which at which the displacement will be calculated.
+        i_deriv: int
+            The first index of the parameter for which you want to calculate the derivative
+        i_deriv: int
+            The second index of the parameter for which you want to calculate the derivative (default: 0)
+        flip: bool
+            If true will consider the displacement in the direction of the opposite unit normal. Note that this is equivalent
+            to multiplying the result by -1. (default: false)
+        tie: bool
+            if true the displacement for all control points that are equal to the one indexed will be added to find the displacement field if the 
+            points were to all of them were to change together. If typ == "weight", the weights of the points must also match in addtion to the 
+            control point. (default: True)
+
+        Returns
+        ----------------------------
+        displacement: np.array or float
+            The displacement of the point. If typ == "control point" then a numpy array is returned where each element is the displacement of the point
+            with respect to the kth coordinate. If typ == "weight", the displacement is a float.
+        """
         unit_norm = self.get_unit_normal(u, v, flip=flip)
         if typ == "control point":
 
@@ -528,6 +820,10 @@ class NURBsSurface:
 
     
     def create_ctrl_point_dict(self):
+        """
+        Creates a dictionary mapping each control point coordinate to its indicies. The dictionary is stored in self.ctrl_points_dict. Keys for the
+        dictionary are the coordiates as a tuple and the values are a list of indicies
+        """
         for i, row in enumerate(self.ctrl_points):
             for j, point in enumerate(row):
                 if tuple(point) in self.ctrl_points_dict:
@@ -537,6 +833,22 @@ class NURBsSurface:
 
     
     def get_matching_points(self, i, j):
+        """
+        Returns a list of the indicies of all the control points with the same coordinates as those 
+        at the passed in indicies.
+
+        Parameters
+        -----------------------------
+        i: int
+            The first index of the control point for which you want matching indicies
+        j: int
+            The second index of the control point for which you want matching indicies
+
+        Returns
+        ------------------------------
+        indicies: list of tuples
+            A list of (i, j) tuples which correspond to the indicies of control points with matching coordinates
+        """
         if self.ctrl_points_dict == {}:
             self.create_ctrl_point_dict()
 
@@ -546,6 +858,23 @@ class NURBsSurface:
         
 
     def get_matching_points_and_weights(self, i, j):
+        """
+        Returns a list of the indicies of all the control points with the same coordinates and weights
+        as those at the passed in indicies.
+
+        Parameters
+        -----------------------------
+        i: int
+            The first index of the control point for which you want matching indicies
+        j: int
+            The second index of the control point for which you want matching indicies
+
+        Returns
+        ------------------------------
+        indicies: list of tuples
+            A list of (i, j) tuples which correspond to the indicies of control points with matching coordinates
+            and weights
+        """
         if self.ctrl_points_dict == {}:
             self.create_ctrl_point_dict()
 
@@ -560,6 +889,30 @@ class NURBsSurface:
             
 
     def calculate_num_and_den_derivatives(self, u, v, k):
+        """
+        Helper function for get_derivative_wrt_uv. Calculates the derivatives of the numerator
+        and denomintor of the expression for the surface.
+
+        Parameters
+        -----------------------------
+        u: float
+            Value of the parameter u for which at which the derivative will be calculated.
+        v: float
+            Value of the parameter v for which at which the derivative will be calculated.
+        k: int
+            The order of the largest derivative you want to calculate
+
+        Returns
+        ------------------------------
+        A_ders: np.array
+            A numpy array (k+1 x k+1) matrix where each element is contains the derivative of the numerator with
+            respect to the u i times and v j times. Note that the derivative will be in the form of a vector
+            and therefore the array will have shape (k+1 x k+1 x self.dim)
+        w_ders: np.array
+            A numpy array (k+1 x k+1) matrix where each element is contains the derivative of the denominator with
+            respect to the u i times and v j times. Note that the derivative will be in the form of a float
+            and therefore the array will have shape (k+1 x k+1)
+        """
         A_ders = np.zeros((k+1, k+1, self.dim))
         w_ders = np.zeros((k+1, k+1))
 
@@ -589,7 +942,25 @@ class NURBsSurface:
 
         return A_ders, w_ders
 
+
+
 def U_vec_to_knots(U):
+    """
+    Given a knot vector results a list of the unique knot values and a list of the
+    multiplicities of each knot.
+
+    Parameters
+    -------------------------
+    U: list or 1d numpy array
+        The knot vector
+
+    Returns
+    ------------------------
+    knots: list
+        The unique knot values in the vector
+    multiplicities: list
+        The multiplicities (how many times each knot is repeated) of each of the knots in knots
+    """
     knots = [U[0]]
     multiplicities = [1]
     for u in U[1:]:
@@ -602,121 +973,203 @@ def U_vec_to_knots(U):
     return knots, multiplicities
 
 def find_inds(i, degree):
-	if i - degree < 0:
-		ind = 0
-		no_nonzero_basis = i + 1
-	else:
-		ind = i - degree
-		no_nonzero_basis = degree + 1
+    """
+    Given a knot space i and a degree returns the index of the 
+    first control point with a nonzero basis function in the ith knot span and 
+    the number of non-zero basis functions
 
-	return ind, no_nonzero_basis
+    Parameters
+    -------------------------
+    i: int
+        The knot span
+    degree: int
+        The degree of the knot space
+
+    Returns
+    ------------------------
+    ind: int
+        The index of the first control point with a non-zero basis function
+    no_nonzero_basis: int
+        The number of non-zero basis functions
+    """
+	
+    if i - degree < 0:
+        ind = 0
+        no_nonzero_basis = i + 1
+    else:
+        ind = i - degree
+        no_nonzero_basis = degree + 1
+
+    return ind, no_nonzero_basis
 
 
 def find_span(n, p, u, U):
-	if u < U[0] or u > U[-1]:
-		return -1
+    """
+    Given a knot vector, returns the knot span in which a given value of u lies
 
-	if u == U[n+1]:
-		return n-1
+    Parameters
+    -------------------------
+    n: int
+        The number of control points in the curve
+    p: int
+        The degree of the knot span
+    u: float
+        The values of u for which you want to find the knot span
+    U: list of float
+        The knot vector
 
-	low = p
-	high = n+1
-	mid = int(np.floor((low + high)/2))
-	while(u < U[mid] or u >= U[mid+1]):
-		if(u < U[mid]):
-			high = mid
-		elif(u >= U[mid]):
-			low = mid
+    Returns
+    ------------------------
+    span: int
+        The knot span that u lies in
+    """
+    if u < U[0] or u > U[-1]:
+        return -1
 
-		mid = int(np.floor((low + high)/2))
+    if u == U[n+1]:
+        return n-1
 
-	return mid
+    low = p
+    high = n+1
+    mid = int(np.floor((low + high)/2))
+    while(u < U[mid] or u >= U[mid+1]):
+        if(u < U[mid]):
+            high = mid
+        elif(u >= U[mid]):
+            low = mid
+
+        mid = int(np.floor((low + high)/2))
+
+    return mid
 
 
 def nurb_basis(i, p, u, U):
-	if i < 0 or i >= len(U):
-		return [0] * (p+1)
+    """
+    Given a knot span, returns a list of the values of the non zero basis functions at a given 
+    value of U
 
-	left = [0] * (p+1)
-	right = [0] * (p+1)
-	N = [0] * (p+1)
-	
-	N[0] = 1
-	for j in range(1, p+1):
-		left[j] = u - U[i+1-j]
-		right[j] = U[i+j] - u
+    Parameters
+    -------------------------
+    i: int
+        The knot span
+    p: int
+        The degree of the knot span
+    u: float
+        The values of u at which you want to evaluate the basis functions
+    U: list of float
+        The knot vector
 
-		saved = 0.0
-		for r in range(j):
-			temp = N[r]/(right[r+1] + left[j-r])
-			N[r] = saved + right[r+1]*temp
-			saved = left[j-r]*temp
-		
-		N[j] = saved
+    Returns
+    ------------------------
+    N: list of floats
+        A list containing the values of the nonzero basis functions at the u
+    """
+    if i < 0 or i >= len(U):
+        return [0] * (p+1)
 
-	return N
+    left = [0] * (p+1)
+    right = [0] * (p+1)
+    N = [0] * (p+1)
+
+    N[0] = 1
+    for j in range(1, p+1):
+        left[j] = u - U[i+1-j]
+        right[j] = U[i+j] - u
+
+        saved = 0.0
+        for r in range(j):
+            temp = N[r]/(right[r+1] + left[j-r])
+            N[r] = saved + right[r+1]*temp
+            saved = left[j-r]*temp
+        
+        N[j] = saved
+
+    return N
 
 
 def nurb_basis_derivatives(i, u, p, U, k):
-	ndu = np.zeros((p+1, p+1))
-	left = [0] * (p+1)
-	right = [0] * (p+1)
+    """
+    Given a knot span, returns a list of the values of the non zero kth derivatives of the basis functions at a given 
+    value of u
 
-	ndu[0][0] = 1.0
+    Parameters
+    -------------------------
+    i: int
+        The knot span
+    p: int
+        The degree of the knot span
+    u: float
+        The values of u at which you want to evaluate the basis functions derivatives
+    U: list of float
+        The knot vector
+    k: int
+        The order of the largest derivative you want to calculate
 
-	for j in range(1, p+1):
-		left[j] = u - U[i+1-j]
-		right[j] = U[i+j] - u
+    Returns
+    ------------------------
+    ders: np.array (k+1 x p+1)
+        A numpy array where the ith row contains the ith derivatives of the non-zero basis functions at the given
+        value of u.
+    """
+    ndu = np.zeros((p+1, p+1))
+    left = [0] * (p+1)
+    right = [0] * (p+1)
 
-		saved = 0.0
-		for r in range(j):
-			ndu[j][r] = right[r+1] + left[j-r]
-			temp = ndu[r][j-1]/ndu[j][r]
+    ndu[0][0] = 1.0
 
-			ndu[r][j] = saved + right[r+1]*temp
-			saved = left[j-r]*temp
-		ndu[j][j] = saved
+    for j in range(1, p+1):
+        left[j] = u - U[i+1-j]
+        right[j] = U[i+j] - u
 
-	ders = np.zeros((k+1, p+1))
-	for j in range(p+1):
-		ders[0][j] = ndu[j][p]
+        saved = 0.0
+        for r in range(j):
+            ndu[j][r] = right[r+1] + left[j-r]
+            temp = ndu[r][j-1]/ndu[j][r]
 
-	a = np.zeros((2, p+1))
-	for r in range(p+1):
-		s1 = 0
-		s2 = 1
-		a[0][0] = 1.0
-		for l in range(1, k+1):
-			d = 0.0
-			rl = r-l
-			pl = p-l
-			if r >= l:
-				a[s2][0] = a[s1][0]/ndu[pl+1][rl]
-				d = a[s2][0] * ndu[rl][pl]
-			
-			j1 = 1 if rl >= -1 else -rl
-			j2 = l-1 if r-1 <= pl else p-r
+            ndu[r][j] = saved + right[r+1]*temp
+            saved = left[j-r]*temp
+        ndu[j][j] = saved
 
-			for j in range(j1, j2+1):
-				a[s2][j] = (a[s1][j] - a[s1][j-1])/ndu[pl+1][rl+j]
-				d += a[s2][j] * ndu[rl+j][pl]
+    ders = np.zeros((k+1, p+1))
+    for j in range(p+1):
+        ders[0][j] = ndu[j][p]
 
-			if r <= pl:
-				a[s2][l] = -a[s1][l-1]/ndu[pl+1][r]
-				d += a[s2][l] * ndu[r][pl]
+    a = np.zeros((2, p+1))
+    for r in range(p+1):
+        s1 = 0
+        s2 = 1
+        a[0][0] = 1.0
+        for l in range(1, k+1):
+            d = 0.0
+            rl = r-l
+            pl = p-l
+            if r >= l:
+                a[s2][0] = a[s1][0]/ndu[pl+1][rl]
+                d = a[s2][0] * ndu[rl][pl]
+            
+            j1 = 1 if rl >= -1 else -rl
+            j2 = l-1 if r-1 <= pl else p-r
 
-			ders[l][r] = d
-			j = s1
-			s1 = s2
-			s2 = j
-	
-	r = p
-	for l in range(1, k+1):
-		for j in range(p+1):
-			ders[l][j] *= r
-		r *= p-l
+            for j in range(j1, j2+1):
+                a[s2][j] = (a[s1][j] - a[s1][j-1])/ndu[pl+1][rl+j]
+                d += a[s2][j] * ndu[rl+j][pl]
 
-	return ders
+            if r <= pl:
+                a[s2][l] = -a[s1][l-1]/ndu[pl+1][r]
+                d += a[s2][l] * ndu[r][pl]
+
+            ders[l][r] = d
+            j = s1
+            s1 = s2
+            s2 = j
+
+    r = p
+    for l in range(1, k+1):
+        for j in range(p+1):
+            ders[l][j] *= r
+        r *= p-l
+
+    return ders
 
         
 

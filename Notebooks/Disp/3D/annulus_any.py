@@ -111,7 +111,7 @@ ro = 2.
 ri = 1.
 l = 3.
 bspline_ind = (0, 0)
-param_ind = [0, 0]
+param_ind = [0, 1]
 typ = 'control point'
 
 if typ == "control point":
@@ -121,15 +121,15 @@ elif typ == "weight":
 
 omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
 dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
-x_points = []
-y_points = []
+x_points = [0]
+y_points = [0]
 omegas = [omega.real]
 
 
 if cache:
     pass
 else:
-    for i in range(1, 10):
+    for i in range(1, 6):
         epsilon = 0.001*i 
         omega_new = find_eigenvalue(ro, ri, l, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
         Delta_w_FD = omega_new.real - omega.real
