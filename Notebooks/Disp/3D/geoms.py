@@ -240,23 +240,23 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
     ri = ri0 + ri_ep
     l = l0 + l_ep
     points = [
-        [[ro, 0, 0],
-        [ro, ro, 0],
+        [[2*ro, 0, 0],
+        [2*ro, ro, 0],
         [0, ro, 0],
-        [-ro, ro, 0],
-        [-ro, 0, 0],
-        [-ro, -ro, 0],
+        [-2*ro, ro, 0],
+        [-2*ro, 0, 0],
+        [-2*ro, -ro, 0],
         [0, -ro, 0],
-        [ro, -ro, 0],
-        [ro, 0, 0]],
+        [2*ro, -ro, 0],
+        [2*ro, 0, 0]],
         [[ro, 0, l],
-        [ro, ro, l],
-        [0, ro, l],
-        [-ro, ro, l],
+        [ro, 2*ro, l],
+        [0, 2*ro, l],
+        [-ro, 2*ro, l],
         [-ro, 0, l],
-        [-ro, -ro, l],
-        [0, -ro, l],
-        [ro, -ro, l],
+        [-ro, -2*ro, l],
+        [0, -2*ro, l],
+        [ro, -2*ro, l],
         [ro, 0, l]]
     ]
 
@@ -278,25 +278,27 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
     )
     cylinder.set_uniform_lc(lc)
 
+    dx = (ro - 0.75*ri)*0.75
+    dy = (ro - ri) * 0.75
     points = [
-        [[ri, 0, 0],
-        [ri, ri, 0],
-        [0, ri, 0],
-        [-ri, ri, 0],
-        [-ri, 0, 0],
-        [-ri, -ri, 0],
-        [0, -ri, 0],
-        [ri, -ri, 0],
-        [ri, 0, 0]],
-        [[ri, 0, l],
-        [ri, ri, l],
-        [0, ri, l],
-        [-ri, ri, l],
-        [-ri, 0, l],
-        [-ri, -ri, l],
-        [0, -ri, l],
-        [ri, -ri, l],
-        [ri, 0, l]]
+        [[1.25*ri + dx, 0 + dy, 0],
+        [1.25*ri + dx, ri + dy, 0],
+        [0 + dx, ri + dy, 0],
+        [-1.25*ri + dx, ri + dy, 0],
+        [-1.25*ri + dx, 0 + dy, 0],
+        [-1.25*ri + dx, -ri + dy, 0],
+        [0 + dx, -ri + dy, 0],
+        [1.25*ri+ dx, -ri + dy, 0],
+        [1.25*ri + dx, 0 + dy, 0]],
+        [[ri + dy, 0 - dx, l],
+        [ri + dy, 1.25*ri - dx, l],
+        [0 + dy, 1.25*ri - dx, l],
+        [-ri + dy, 1.25*ri - dx, l],
+        [-ri + dy, 0 - dx, l],
+        [-ri + dy, -1.25*ri - dx, l],
+        [0 + dy, -1.25*ri - dx, l],
+        [ri + dy, -1.25*ri - dx, l],
+        [ri + dy, 0 - dx, l]]
     ]
     inner_cylinder = NURBsSurface(
         points,
@@ -311,24 +313,24 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
     inner_cylinder.set_uniform_lc(lc)
 
     points = [
-        [[ro, 0, 0],
-        [ro, ro, 0],
+        [[2*ro, 0, 0],
+        [2*ro, ro, 0],
         [0, ro, 0],
-        [-ro, ro, 0],
-        [-ro, 0, 0],
-        [-ro, -ro, 0],
+        [-2*ro, ro, 0],
+        [-2*ro, 0, 0],
+        [-2*ro, -ro, 0],
         [0, -ro, 0],
-        [ro, -ro, 0],
-        [ro, 0, 0]],
-        [[ri, 0, 0],
-        [ri, ri, 0],
-        [0, ri, 0],
-        [-ri, ri, 0],
-        [-ri, 0, 0],
-        [-ri, -ri, 0],
-        [0, -ri, 0],
-        [ri, -ri, 0],
-        [ri, 0, 0]]
+        [2*ro, -ro, 0],
+        [2*ro, 0, 0]],
+        [[1.25*ri + dx, 0 + dy, 0],
+        [1.25*ri + dx, ri + dy, 0],
+        [0 + dx, ri + dy, 0],
+        [-1.25*ri + dx, ri + dy, 0],
+        [-1.25*ri + dx, 0 + dy, 0],
+        [-1.25*ri + dx, -ri + dy, 0],
+        [0 + dx, -ri + dy, 0],
+        [1.25*ri + dx, -ri + dy, 0],
+        [1.25*ri + dx, 0 + dy, 0]]
     ]
 
     start = NURBsSurface(
@@ -345,23 +347,23 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
 
     points = [[
         [ro, 0, l],
-        [ro, ro, l],
-        [0, ro, l],
-        [-ro, ro, l],
+        [ro, 2*ro, l],
+        [0, 2*ro, l],
+        [-ro, 2*ro, l],
         [-ro, 0, l],
-        [-ro, -ro, l],
-        [0, -ro, l],
-        [ro, -ro, l],
+        [-ro, -2*ro, l],
+        [0, -2*ro, l],
+        [ro, -2*ro, l],
         [ro, 0, l]],
-        [[ri, 0, l],
-        [ri, ri, l],
-        [0, ri, l],
-        [-ri, ri, l],
-        [-ri, 0, l],
-        [-ri, -ri, l],
-        [0, -ri, l],
-        [ri, -ri, l],
-        [ri, 0, l]]
+        [[ri + dy, 0 - dx, l],
+        [ri + dy, 1.25*ri - dx, l],
+        [0 + dy, 1.25*ri - dx, l],
+        [-ri + dy, 1.25*ri - dx, l],
+        [-ri + dy, 0 - dx, l],
+        [-ri + dy, -1.25*ri - dx, l],
+        [0 + dy, -1.25*ri - dx, l],
+        [ri + dy, -1.25*ri - dx, l],
+        [ri + dy, 0 - dx, l]]
     ]
 
     end = NURBsSurface(
@@ -378,14 +380,14 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
 
     return [start, cylinder, end, inner_cylinder]
 
-# start, cylinder, end, inner_cylinder = annulus(2, 1, 3, 0.5, -0.1, -0.4, 1e-1)
-# geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-# geom.model.remove_physical_groups()
-# geom.model.remove()
-# geom.generate_mesh()
-# geom.add_bspline_groups([[1, 2, 3, 4]])
-# geom.model_to_fenics(show_mesh=True)
-# geom.create_function_space("Lagrange", 3)
+start, cylinder, end, inner_cylinder = annulus(2, 1, 10, 0.5, -0.1, -0.4, 5e-1)
+geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
+geom.model.remove_physical_groups()
+geom.model.remove()
+geom.generate_mesh()
+geom.add_bspline_groups([[1, 2, 3, 4]])
+geom.model_to_fenics(show_mesh=True)
+geom.create_function_space("Lagrange", 3)
 
 
 def edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon):
