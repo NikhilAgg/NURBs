@@ -380,14 +380,14 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
 
     return [start, cylinder, end, inner_cylinder]
 
-start, cylinder, end, inner_cylinder = annulus(2, 1, 10, 0.5, -0.1, -0.4, 5e-1)
-geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-geom.model.remove_physical_groups()
-geom.model.remove()
-geom.generate_mesh()
-geom.add_bspline_groups([[1, 2, 3, 4]])
-geom.model_to_fenics(show_mesh=True)
-geom.create_function_space("Lagrange", 3)
+# start, cylinder, end, inner_cylinder = annulus(2, 1, 10, 0.5, -0.1, -0.4, 5e-1)
+# geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
+# geom.model.remove_physical_groups()
+# geom.model.remove()
+# geom.generate_mesh()
+# geom.add_bspline_groups([[1, 2, 3, 4]])
+# geom.model_to_fenics(show_mesh=True)
+# geom.create_function_space("Lagrange", 3)
 
 
 def edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon):

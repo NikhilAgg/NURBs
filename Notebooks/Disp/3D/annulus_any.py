@@ -59,10 +59,10 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     return [p, p_adj]
 
 
-def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind):
+def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, omega_old=None, ep_step=0):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, 5e-1, degree)
+    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, bspline_ind, param_ind, 1e-1, degree)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {1: {'Dirichlet'},
@@ -80,16 +80,25 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind):
     A = matrices.A
     C = matrices.C
 
-    target =  c_const * np.pi
-    E = eps_solver(A, C, target**2, nev = 2, two_sided=True)
+    target =  c_const * np.pi * 1.4
+    if dw == None:
+        E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
+        i = 0
+    else:
+        E = eps_solver(A, C, target**2, nev = 10, two_sided=True)
+        dots = []
+        for i in range(10):
+            omega, p = normalize_eigenvector(geom.msh, E, i, degree=degree, which='right')
+            dots.append(abs(omega - (omega_old + dw * epsilon)))
+        i = np.argmin(dots)
+            
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     omega_adj, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
-
     p = normalize_magnitude(p)
     p_adj = normalize_magnitude(p_adj)
     
     p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
-    # plot_mesh(geom.msh, geom.V, p)
+    plot_slices(geom.msh, geom.V, p)
 
     return [omega, p, p_adj, geom, ds, c]
 
@@ -106,32 +115,33 @@ def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, pa
 
 
 cache = False
-ep_step = 0.001
-ro = 2.
-ri = 1.
-l = 3.
+ep_step = 0.01
+ro = 0.5
+ri = 0.25
+l = 1.
 bspline_ind = (0, 0)
-param_ind = [0, 1]
+param_ind = [0, 0]
 typ = 'control point'
 
 if typ == "control point":
-    ep_list = np.array([0., 0., 1.])
+    ep_list = np.array([1., 0., 0.])
 elif typ == "weight":
     ep_list = 1
 
-omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
+omega1, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
 dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
 x_points = [0]
 y_points = [0]
-omegas = [omega.real]
+omegas = [omega1.real]
+omega = omega1
 
 
 if cache:
     pass
 else:
     for i in range(1, 6):
-        epsilon = 0.001*i 
-        omega_new = find_eigenvalue(ro, ri, l, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
+        epsilon = ep_step*i 
+        omega_new = find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw, omega1, ep_list)[0]
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
         y_points.append(abs(Delta_w_FD - dw*epsilon))
