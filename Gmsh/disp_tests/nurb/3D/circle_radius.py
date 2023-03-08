@@ -46,14 +46,14 @@ cylinder.set_uniform_lc(1e-2)
 t = np.linspace(0, 1, 100)
 s = np.linspace(0, 1, 100)
 y = np.array([cylinder.calculate_point(u, v) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
-norms = np.array([cylinder.get_unit_normal(u, v, flip=True) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
+norms = np.array([cylinder.get_unit_normal(u, v, flip_norm=True) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
 # theta = np.arctan2(y[:, 1], y[:, 0])
 
 ti = time.time()
 dy = np.zeros(len(y))
 for j in range(2):
     for i in range(8):
-        p = np.array([np.sum(cylinder.get_displacement("control point", u, v, j, i, flip=True)[0:2]*((np.array(points[j][i])/r)[0:2])) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
+        p = np.array([np.sum(cylinder.get_displacement("control point", u, v, j, i, flip_norm=True)[0:2]*((np.array(points[j][i])/r)[0:2])) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
         dy += p
 
 print(time.time()-ti)

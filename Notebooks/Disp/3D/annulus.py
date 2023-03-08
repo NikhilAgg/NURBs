@@ -79,7 +79,7 @@ def find_eigenvalue(ro, ri, l, ro_ep, ri_ep, l_ep):
     A = matrices.A
     C = matrices.C
 
-    target =  c_const * np.pi
+    target =  c_const * np.pi * 1.4
     E = eps_solver(A, C, target**2, nev = 2, two_sided=True)
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     omega_adj, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
@@ -101,17 +101,17 @@ def find_shapegrad_dirichlet(ro, ri, typ, p, p_adj, geom, ds, c):
     if typ == "ro":
         for i in range(2):
             for j in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 1), [i, j], flip=False), (np.r_[geom.bsplines[0][1].ctrl_points[i][j][0:2], [0]]/ro))
+                C += np.dot(geom.get_displacement_field("control point", (0, 1), [i, j]), (np.r_[geom.bsplines[0][1].ctrl_points[i][j][0:2], [0]]/ro))
 
     elif typ == "ri":
         for i in range(2):
             for j in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 3), [i, j], flip=True), (np.r_[geom.bsplines[0][3].ctrl_points[i][j][0:2], [0]]/ri))
+                C += np.dot(geom.get_displacement_field("control point", (0, 3), [i, j]), (np.r_[geom.bsplines[0][3].ctrl_points[i][j][0:2], [0]]/ri))
 
     elif typ == "l":
         for i in range(2):
             for j in range(8):
-                C += geom.get_displacement_field("control point", (0, 2), [i, j], flip=False)[2]
+                C += geom.get_displacement_field("control point", (0, 2), [i, j])[2]
 
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
@@ -121,9 +121,9 @@ def find_shapegrad_dirichlet(ro, ri, typ, p, p_adj, geom, ds, c):
 
 cache = False
 ep_step = 0.001
-ro = 2
-ri = 1
-l = 3
+ro = 0.5
+ri = 0.25
+l = 1.
 typ = 'ro'
 
 if typ == "ro":

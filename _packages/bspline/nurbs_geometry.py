@@ -79,7 +79,7 @@ class NURBsGeometry:
         return self.V
 
 
-    def get_displacement_field(self, typ, bspline_ind, param_ind, flip=False, tie=True, degree=None, cell_type=None):
+    def get_displacement_field(self, typ, bspline_ind, param_ind, flip_norm=None, tie=True, degree=None, cell_type=None):
         deriv_bsplines = self.get_deriv_bsplines(typ, bspline_ind, param_ind, tie)
 
         if typ == "control point":
@@ -88,13 +88,13 @@ class NURBsGeometry:
             dim = 1
   
         def get_displacement(bsplines, coord):
-            nonlocal typ, flip, deriv_bsplines
+            nonlocal typ, flip_norm, deriv_bsplines
             for indices, params in bsplines:
                 C = np.zeros(dim)
                 if tuple(indices) in deriv_bsplines: 
                     i, j = indices
                     param_ind = deriv_bsplines[tuple(indices)][0]
-                    C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip, tie)
+                    C += self.bsplines[i][j].get_displacement(typ, *params, *param_ind, flip_norm, tie)
 
             return C
 

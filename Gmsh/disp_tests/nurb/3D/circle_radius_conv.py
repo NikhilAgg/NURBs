@@ -46,7 +46,7 @@ def func(n,r, l):
     t = np.linspace(0, 1, n)
     s = np.linspace(0, 1, n)
     y = np.array([cylinder.calculate_point(u, v) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
-    norms = np.array([cylinder.get_unit_normal(u, v, flip=True) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
+    norms = np.array([cylinder.get_unit_normal(u, v, flip_norm=True) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
     theta = np.arctan2(y[0::n, 1], y[0::n, 0])
     sl = [0]
     for i in range(1, theta.shape[0]):
@@ -56,7 +56,7 @@ def func(n,r, l):
     dy = np.zeros(len(y))
     for j in range(2):
         for i in range(8):
-            p = np.array([np.sum(cylinder.get_displacement("control point", u, v, j, i, flip=False)[0:2]*((np.array(points[j][i])/r)[0:2])) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
+            p = np.array([np.sum(cylinder.get_displacement("control point", u, v, j, i, flip_norm=False)[0:2]*((np.array(points[j][i])/r)[0:2])) for u, v in np.array(np.meshgrid(t, s)).T.reshape(-1,2)])
             dy += p
 
             intg = []

@@ -26,10 +26,11 @@ from dolfinx_utils.utils import *
 import time
 
 
-def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree):
-    start, cylinder, end, inner_cylinder = annulus(ro, ri, l, 0, 0, 0, lc)
+def create_mesh(ro, ri, l, epsilon, typ, param_ind, lc, degree):
+    start, cylinder, end, inner_cylinder = thin(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-    geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon)
+    geom = edit_param_3d(geom, typ, (0, 0), param_ind, epsilon)
+    geom = edit_param_3d(geom, typ, (0, 2), param_ind, epsilon)
     geom.model.remove_physical_groups()
     geom.model.remove()
     geom.generate_mesh()
@@ -47,9 +48,12 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 
     first_term_val = conjugate_function(p_adj).vector.dot(Lp.vector)
 
+    ds = ufl.Measure("ds", domain=geom.msh, subdomain_data=geom.facet_tags)
     Z=1
-    second_term = fem.form((1j*c/Z) * ufl.inner(p_adj, p)*ufl.ds)
-    second_term_val = fem.assemble_scalar(second_term)
+    second_term = (1j*c/Z) * ufl.inner(p_adj, p)*ds(2) + (1j*c/Z) * ufl.inner(p_adj, p)*ds(4)
+    Z=100000000000000000000000000
+    second_term += (1j*c/Z) * ufl.inner(p_adj, p)*ds(1) + (1j*c/Z) * ufl.inner(p_adj, p)*ds(3)
+    second_term_val = fem.assemble_scalar(fem.form(second_term))
 
     norm_const = first_term_val + second_term_val
 
@@ -59,15 +63,15 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     return [p, p_adj]
 
 
-def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, omega_old=None, ep_step=0):
+def find_eigenvalue(ro, ri, l, epsilon, typ, param_ind, dw=None, omega_old=None, ep_step=0):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, bspline_ind, param_ind, 5e-2, degree)
+    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, param_ind, l, degree)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
-    boundary_conditions = {1: {'Dirichlet'},
+    boundary_conditions = {1: {'Neumann'},
                            2: {'Dirichlet'},
-                           3: {'Dirichlet'},
+                           3: {'Neumann'},
                            4: {'Dirichlet'}}
     ds = ufl.ds
     facet_tags = geom.facet_tags
@@ -106,12 +110,13 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, om
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list):
+def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, param_ind, ep_list):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     
 
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list)
+    C = np.dot(geom.get_displacement_field(typ, (0, 0), param_ind), ep_list)
+    C += np.dot(geom.get_displacement_field(typ, (0, 2), param_ind), ep_list)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -119,12 +124,11 @@ def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, pa
 
 
 cache = False
-ep_step = 0.01
+ep_step = 0.001
 ro = 0.5
 ri = 0.25
-l = 1
-bspline_ind = (0, 0)
-param_ind = [0, 0]
+l = 1e-2
+param_ind = (0, 4)
 typ = 'control point'
 
 if typ == "control point":
@@ -132,13 +136,16 @@ if typ == "control point":
 elif typ == "weight":
     ep_list = 1
 
-omega1, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
-dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
+omega1, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, param_ind)
+dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, param_ind, ep_list)
 x_points = [0]
 y_points = [0]
 omegas = [omega1.real]
 omega = omega1
 print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
+with XDMFFile(geom.msh.comm, f"./Notebooks/Disp/3D/paraview/thin_any/{l}.xdmf", "w") as xdmf:
+        xdmf.write_mesh(geom.msh)
+        xdmf.write_function(p)
 
 
 if cache:
@@ -146,7 +153,7 @@ if cache:
 else:
     for i in range(1, 6):
         epsilon = ep_step*i 
-        omega_new = find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, None, omega1, ep_list)[0]
+        omega_new = find_eigenvalue(ro, ri, l, epsilon, typ, param_ind, dw, omega1, ep_list)[0]
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
         y_points.append(abs(Delta_w_FD - dw*epsilon))

@@ -11,6 +11,7 @@ class NURBsCurve:
 
         #Other
         self.create_ctrl_point_dict()
+        self.flip_norm = False
 
         #TODO FIX U DIFFERENCE AND PERIODIC SPLINES
         #TODO ADD CHECKS
@@ -223,7 +224,7 @@ class NURBsCurve:
         return ders
 
     
-    def get_unit_normal(self, u, flip=False):
+    def get_unit_normal(self, u, flip_norm=None):
         """
         Calculates the unit normal to the curve at a given point
 
@@ -231,14 +232,15 @@ class NURBsCurve:
         ----------------------------
         u: float
             Value of the parameter u at which the normal will be found
-        flip: bool
-            If true will return the negative of the calculated normal (default: False)
+        flip_norm: bool
+            If true will return the negative of the calculated normal. If none is passed the value in self.flip_norm will be used (default: None)
 
         Returns
         ----------------------------
         unit_norm: np.array
             The unit normal
         """
+        flip_norm = flip_norm if flip_norm != None else self.flip_norm
 
         dC = self.derivative_wrt_u(u, 1)[1]
         dC_hat = dC / np.linalg.norm(dC)
@@ -247,13 +249,13 @@ class NURBsCurve:
         dC_hat[0] = -dC_hat[1]
         dC_hat[1] = temp
 
-        if flip:
+        if flip_norm:
             dC_hat *= -1
 
         return dC_hat
 
     
-    def get_curvature(self, u, flip=False):
+    def get_curvature(self, u, flip_norm=False):
         """
         Calculates the curvature of the curve with respect to the parameter u. The curvature is defined as the divegence of the 
         unit normal along the curve
@@ -262,9 +264,9 @@ class NURBsCurve:
         ----------------------------
         u: float
             Value of the parameter u for which at which the derivative will be calculated.
-        flip: False
-            Multiplies the result by -1. Equivalent to considering the unit normal in the opposite direction to the one calculated.
-            (default: false)
+        flip_norm: False
+            Multiplies the result by -1. Equivalent to considering the unit normal in the opposite direction to the one calculated. If none is passed
+            the value in self.flip_norm will be used (default: None)
 
         Returns
         ----------------------------
@@ -278,13 +280,14 @@ class NURBsCurve:
 
         curvature = np.linalg.norm(np.cross(dC, d2C)) / np.linalg.norm(dC)**3
 
-        if flip:
+        flip_norm = flip_norm if flip_norm != None else self.flip_norm
+        if flip_norm:
             curvature *= -1
 
         return curvature
 
 
-    def get_displacement(self, typ, u, i_deriv, flip=False, tie=True):
+    def get_displacement(self, typ, u, i_deriv, flip_norm=None, tie=True):
         """
         Calculates the displacement/derivative of a point in the direction normal to the curve wrt a specified parameter
 
@@ -296,9 +299,9 @@ class NURBsCurve:
             Value of the parameter u at the point at which at which the displacement will be calculated.
         i_deriv: int
             The index of the parameter for which you want to calculate the derivative
-        flip: bool
+        flip_norm: bool
             If true will consider the displacement in the direction of the opposite unit normal. Note that this is equivalent
-            to multiplying the result by -1 (default: false)
+            to multiplying the result by -1. If None is passed in, the value of flip in self.flip_norm will be used (default: None)
         tie: bool
             if true and the NURB is periodic changes to the first and last parameter will be added to find the displacement field if the 
             points were to both change. If typ == "weight", the first and last weight must also be equal in addition to the curve being periodic.
@@ -310,8 +313,7 @@ class NURBsCurve:
             The displacement of the point. If typ == "control point" then a numpy array is returned where each element is the displacement of the point
             with respect to the kth coordinate. If typ == "weight", the displacement is a float.
         """
-
-        unit_norm = self.get_unit_normal(u, flip=flip)
+        unit_norm = self.get_unit_normal(u, flip_norm=flip_norm)
 
         if typ == "control point":
             der = self.derivative_wrt_ctrl_point(i_deriv, u)[0]
@@ -438,6 +440,7 @@ class NURBsSurface:
 
         #Other
         self.ctrl_points_dict = {}
+        self.flip_norm = False
         
 
     def set_uniform_lc(self, lc):
@@ -644,7 +647,7 @@ class NURBsSurface:
         return ders
 
     
-    def get_unit_normal(self, u, v, flip=False):
+    def get_unit_normal(self, u, v, flip_norm=None):
         """
         Calculates the unit normal to the surface at a given point
 
@@ -654,19 +657,22 @@ class NURBsSurface:
             Value of the parameter u at which the normal will be found
         v: float
             Value of the parameter v at which the normal will be found
-        flip: bool
-            If true will return the negative of the calculated normal (default: False)
+        flip_norm: bool
+            If true will return the negative of the calculated normal. If None is passed in, the value of flip 
+            in self.flip_norm will be used (default: None)
 
         Returns
         ----------------------------
         unit_norm: np.array
             The unit normal
         """
+        flip_norm = flip_norm if flip_norm != None else self.flip_norm
+
         ders = self.derivative_wrt_uv(u, v, 1)
         norm = np.cross(ders[1][0], ders[0][1])
         unit_norm = norm / np.linalg.norm(norm)
 
-        if flip:
+        if flip_norm:
             unit_norm *= -1
 
         return unit_norm
@@ -714,7 +720,7 @@ class NURBsSurface:
         return [dn_du, dn_dv]
 
 
-    def get_curvature(self, u, v, flip=False):
+    def get_curvature(self, u, v, flip_norm=False):
         """
         Calculates the curvature of the surface at a point on the surface. The curvature is defined as the divegence of the 
         unit normal along the surface
@@ -727,7 +733,7 @@ class NURBsSurface:
             Value of the parameter v for which at which the derivative will be calculated.
         flip: False
             Multiplies the result by -1. Equivalent to considering the unit normal in the opposite direction to the one calculated.
-            (default: false)
+            If None is passed in, the value of flip in self.flip_norm will be used (default: None)
 
         Returns
         ----------------------------
@@ -754,13 +760,14 @@ class NURBsSurface:
                     np.dot(dn_dv, np.linalg.norm(dS_du)*eu_perp)
         curvature /= np.linalg.norm(np.cross(dS_du, dS_dv))
 
-        if flip:
+        flip_norm = flip_norm if flip_norm != None else self.flip_norm
+        if flip_norm:
             curvature *= -1
         
         return curvature
 
     
-    def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip=False, tie=True):
+    def get_displacement(self, typ, u, v, i_deriv, j_deriv=0, flip_norm=None, tie=True):
         """
         Calculates the displacement/derivative of a point in the direction normal to the surface wrt a specified parameter
 
@@ -776,9 +783,9 @@ class NURBsSurface:
             The first index of the parameter for which you want to calculate the derivative
         i_deriv: int
             The second index of the parameter for which you want to calculate the derivative (default: 0)
-        flip: bool
+        flip_norm: bool
             If true will consider the displacement in the direction of the opposite unit normal. Note that this is equivalent
-            to multiplying the result by -1. (default: false)
+            to multiplying the result by -1. If None is passed in, the value of flip in self.flip_norm will be used (default: None)
         tie: bool
             if true the displacement for all control points that are equal to the one indexed will be added to find the displacement field if the 
             points were to all of them were to change together. If typ == "weight", the weights of the points must also match in addtion to the 
@@ -790,7 +797,7 @@ class NURBsSurface:
             The displacement of the point. If typ == "control point" then a numpy array is returned where each element is the displacement of the point
             with respect to the kth coordinate. If typ == "weight", the displacement is a float.
         """
-        unit_norm = self.get_unit_normal(u, v, flip=flip)
+        unit_norm = self.get_unit_normal(u, v, flip_norm=flip_norm)
         if typ == "control point":
 
             if tie:

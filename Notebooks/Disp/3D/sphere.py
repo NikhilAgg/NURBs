@@ -26,16 +26,9 @@ from dolfinx_utils.utils import *
 import time
 
 
-def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree):
-    start, cylinder, end, inner_cylinder = annulus(ro, ri, l, 0, 0, 0, lc)
-    geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-    geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon)
-    geom.model.remove_physical_groups()
-    geom.model.remove()
-    geom.generate_mesh()
-    geom.add_bspline_groups([[1, 2, 3, 4]])
-    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
-    geom.create_function_space("Lagrange", degree)
+def create_mesh(r, epsilon, lc, degree):
+    geom = sphere(r, epsilon, lc, show_mesh=False)
+    geom.V = fem.FunctionSpace(geom.msh, ("Lagrange", degree))
 
     return geom
 
@@ -59,16 +52,13 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     return [p, p_adj]
 
 
-def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, omega_old=None, ep_step=0):
+def find_eigenvalue(r, ep):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, bspline_ind, param_ind, 5e-2, degree)
+    geom = create_mesh(r, ep, 4e-1, degree)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
-    boundary_conditions = {1: {'Dirichlet'},
-                           2: {'Dirichlet'},
-                           3: {'Dirichlet'},
-                           4: {'Dirichlet'}}
+    boundary_conditions = {1: {'Dirichlet'}}
     ds = ufl.ds
     facet_tags = geom.facet_tags
 
@@ -80,20 +70,11 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, om
     A = matrices.A
     C = matrices.C
 
-    target =  c_const * np.pi * 1.4
-    if dw == None:
-        E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
-        i = 0
-    else:
-        E = eps_solver(A, C, target**2, nev = 5, two_sided=True)
-        dots = []
-        for i in range(5):
-            omega, p = normalize_eigenvector(geom.msh, E, i, degree=degree, which='right')
-            dots.append(abs(omega - (omega_old + dw * epsilon)))
-        i = np.argmin(dots)
-            
+    target =  c_const * np.pi
+    E = eps_solver(A, C, target**2, nev = 2, two_sided=True)
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     omega_adj, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
+
     p = normalize_magnitude(p)
     p_adj = normalize_magnitude(p_adj)
     
@@ -106,12 +87,26 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, om
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list):
+def find_shapegrad_dirichlet(ro, ri, typ, p, p_adj, geom, ds, c):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
-    
 
+    C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list)
+    if typ == "ro":
+        for i in range(2):
+            for j in range(8):
+                C += np.dot(geom.get_displacement_field("control point", (0, 1), [i, j]), (np.r_[geom.bsplines[0][1].ctrl_points[i][j][0:2], [0]]/ro))
+
+    elif typ == "ri":
+        for i in range(2):
+            for j in range(8):
+                C += np.dot(geom.get_displacement_field("control point", (0, 3), [i, j]), (np.r_[geom.bsplines[0][3].ctrl_points[i][j][0:2], [0]]/ri))
+
+    elif typ == "l":
+        for i in range(2):
+            for j in range(8):
+                C += geom.get_displacement_field("control point", (0, 2), [i, j])[2]
+
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -119,47 +114,38 @@ def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, pa
 
 
 cache = False
-ep_step = 0.01
-ro = 0.5
-ri = 0.25
-l = 1
-bspline_ind = (0, 0)
-param_ind = [0, 0]
-typ = 'control point'
+ep_step = 0.001
+r = 1
+typ = 'ro'
 
-if typ == "control point":
-    ep_list = np.array([1., 0., 0.])
-elif typ == "weight":
-    ep_list = 1
-
-omega1, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
-dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
-x_points = [0]
-y_points = [0]
-omegas = [omega1.real]
-omega = omega1
-print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
+omega, p, p_adj, geom, ds, c = find_eigenvalue(r, 0)
+# dw = find_shapegrad_dirichlet(ro, ri, typ, p, p_adj, geom, ds, c)
+x_points = []
+y_points = []
+omegas = [omega.real]
 
 
 if cache:
     pass
 else:
-    for i in range(1, 6):
+    for i in range(1, 10):
         epsilon = ep_step*i 
-        omega_new = find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, None, omega1, ep_list)[0]
+        omega_new = find_eigenvalue(r, epsilon)[0]
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
-        y_points.append(abs(Delta_w_FD - dw*epsilon))
+        # y_points.append(abs(Delta_w_FD - dw*epsilon))
         omegas.append(omega_new.real)
 
         print(f"x_points = {x_points}")
         print(f"y_points = {y_points}")
+        print(f"omega/pi = {[(omegas[i]*(r+epsilon))/np.pi for i in range(len(omegas))]}")
         print(f"delta_ws = {[(omegas[i] - omegas[i-1])/ep_step for i in range(1, len(omegas))]}")
 
-print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
-plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')
-plt.plot(x_points, y_points)
-plt.xlabel('$\epsilon^2$')
-plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
-plt.show()
+
+# print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
+# plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')
+# plt.plot(x_points, y_points)
+# plt.xlabel('$\epsilon^2$')
+# plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
+# plt.show()
 

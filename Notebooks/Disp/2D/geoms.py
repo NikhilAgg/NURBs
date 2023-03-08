@@ -233,4 +233,53 @@ def edit_param_2d(geom, typ, bspline_ind, param_ind, epsilon):
 # geom.model_to_fenics(show_mesh=True)
 # geom.create_function_space("Lagrange", 3)
 
+def thin(ro, ri, epsilon, lc):
+    ro = ro + epsilon
+    points = [
+        [2*ro, 0],
+        [2*ro, ro],
+        [0, ro],
+        [-2*ro, ro],
+        [-2*ro, 0],
+        [-2*ro, -ro],
+        [0, -ro],
+        [2*ro, -ro],
+        [2*ro, 0]
+    ]
 
+    weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
+    knots = [0, 1/4, 1/2, 3/4, 1]
+    multiplicities = [3, 2, 2, 2, 3]
+
+    circle = NURBsCurve(
+        points,
+        weights,
+        knots,
+        multiplicities,
+        2
+    )
+    circle.set_uniform_lc(lc)
+
+    dx = (ro - 0.75*ri)*0.75
+    dy = (ro - ri) * 0.75
+    points = [
+        [1.25*ri + dx, 0 + dy],
+        [1.25*ri + dx, ri + dy],
+        [0 + dx, ri + dy],
+        [-1.25*ri + dx, ri + dy],
+        [-1.25*ri + dx, 0 + dy],
+        [-1.25*ri + dx, -ri + dy],
+        [0 + dx, -ri + dy],
+        [1.25*ri+ dx, -ri + dy],
+        [1.25*ri + dx, 0 + dy]
+    ]
+    inner_circle = NURBsCurve(
+        points,
+        weights,
+        knots,
+        multiplicities,
+        2
+    )
+    inner_circle.set_uniform_lc(lc)
+
+    return circle, inner_circle
