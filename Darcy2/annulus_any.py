@@ -13,10 +13,10 @@ import ufl
 from mpi4py import MPI
 from dolfinx import fem
 from petsc4py import PETSc
-from helmholtz_x.passive_flame_x import *
-from helmholtz_x.eigensolvers_x import eps_solver
-from helmholtz_x.eigenvectors_x import normalize_eigenvector
-from helmholtz_x.petsc4py_utils import conjugate_function
+from helmholtz_temp.passive_flame_x import *
+from helmholtz_temp.eigensolvers_x import eps_solver
+from helmholtz_temp.eigenvectors_x import normalize_eigenvector
+from helmholtz_temp.petsc4py_utils import conjugate_function
 from dolfinx_utils_temp import *
 from nurbs_geometry import NURBs3DGeometry
 from geoms import *
