@@ -548,3 +548,159 @@ def sphere(r, epsilon, lc, show_mesh=False):
     return geom
 
 # sphere(1, 0, 1e-1, show_mesh=True)
+
+def smooth_annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
+    ro = ro0 + ro_ep
+    ri = ri0 + ri_ep
+    l = l0 + l_ep
+    points = [
+        [[2*ro, 0, 0],
+        [2*ro, ro, 0],
+        [0, ro, 0],
+        [-2*ro, ro, 0],
+        [-2*ro, 0, 0],
+        [-2*ro, -ro, 0],
+        [0, -ro, 0],
+        [2*ro, -ro, 0],
+        [2*ro, 0, 0]],
+        [[ro, 0, l],
+        [ro, 2*ro, l],
+        [0, 2*ro, l],
+        [-ro, 2*ro, l],
+        [-ro, 0, l],
+        [-ro, -2*ro, l],
+        [0, -2*ro, l],
+        [ro, -2*ro, l],
+        [ro, 0, l]]
+    ]
+
+    weights = [[1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1], [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]]
+    knotsU = [0, 1/6, 2/6, 3/6, 4/6, 5/6, 1]
+    knotsV = [0, 1]
+    multiplicitiesU = [4, 1, 1, 1, 1, 1, 4]
+    multiplicitiesV = [2, 2]
+
+    cylinder = NURBsSurface(
+        points,
+        weights,
+        knotsU,
+        knotsV,
+        multiplicitiesU,
+        multiplicitiesV,
+        degreeU = 3,
+        degreeV = 1
+    )
+    cylinder.set_uniform_lc(lc)
+
+    dx = (ro - 0.75*ri)*0.75
+    dy = (ro - ri) * 0.75
+    points = [
+        [[1.25*ri + dx, 0 + dy, 0],
+        [1.25*ri + dx, ri + dy, 0],
+        [0 + dx, ri + dy, 0],
+        [-1.25*ri + dx, ri + dy, 0],
+        [-1.25*ri + dx, 0 + dy, 0],
+        [-1.25*ri + dx, -ri + dy, 0],
+        [0 + dx, -ri + dy, 0],
+        [1.25*ri+ dx, -ri + dy, 0],
+        [1.25*ri + dx, 0 + dy, 0]],
+        [[ri + dy, 0 - dx, l],
+        [ri + dy, 1.25*ri - dx, l],
+        [0 + dy, 1.25*ri - dx, l],
+        [-ri + dy, 1.25*ri - dx, l],
+        [-ri + dy, 0 - dx, l],
+        [-ri + dy, -1.25*ri - dx, l],
+        [0 + dy, -1.25*ri - dx, l],
+        [ri + dy, -1.25*ri - dx, l],
+        [ri + dy, 0 - dx, l]]
+    ]
+    inner_cylinder = NURBsSurface(
+        points,
+        weights,
+        knotsU,
+        knotsV,
+        multiplicitiesU,
+        multiplicitiesV,
+        degreeU = 3,
+        degreeV = 1
+    )
+    inner_cylinder.set_uniform_lc(lc)
+    inner_cylinder.flip_norm = True
+
+    points = [
+        [[2*ro, 0, 0],
+        [2*ro, ro, 0],
+        [0, ro, 0],
+        [-2*ro, ro, 0],
+        [-2*ro, 0, 0],
+        [-2*ro, -ro, 0],
+        [0, -ro, 0],
+        [2*ro, -ro, 0],
+        [2*ro, 0, 0]],
+        [[1.25*ri + dx, 0 + dy, 0],
+        [1.25*ri + dx, ri + dy, 0],
+        [0 + dx, ri + dy, 0],
+        [-1.25*ri + dx, ri + dy, 0],
+        [-1.25*ri + dx, 0 + dy, 0],
+        [-1.25*ri + dx, -ri + dy, 0],
+        [0 + dx, -ri + dy, 0],
+        [1.25*ri + dx, -ri + dy, 0],
+        [1.25*ri + dx, 0 + dy, 0]]
+    ]
+
+    start = NURBsSurface(
+        points,
+        weights,
+        knotsU,
+        knotsV,
+        multiplicitiesU,
+        multiplicitiesV,
+        degreeU = 3,
+        degreeV = 1
+    )
+    start.set_uniform_lc(lc)
+    start.flip_norm = True
+
+    points = [[
+        [ro, 0, l],
+        [ro, 2*ro, l],
+        [0, 2*ro, l],
+        [-ro, 2*ro, l],
+        [-ro, 0, l],
+        [-ro, -2*ro, l],
+        [0, -2*ro, l],
+        [ro, -2*ro, l],
+        [ro, 0, l]],
+        [[ri + dy, 0 - dx, l],
+        [ri + dy, 1.25*ri - dx, l],
+        [0 + dy, 1.25*ri - dx, l],
+        [-ri + dy, 1.25*ri - dx, l],
+        [-ri + dy, 0 - dx, l],
+        [-ri + dy, -1.25*ri - dx, l],
+        [0 + dy, -1.25*ri - dx, l],
+        [ri + dy, -1.25*ri - dx, l],
+        [ri + dy, 0 - dx, l]]
+    ]
+
+    end = NURBsSurface(
+        points,
+        weights,
+        knotsU,
+        knotsV,
+        multiplicitiesU,
+        multiplicitiesV,
+        degreeU = 3,
+        degreeV = 1
+    )
+    end.set_uniform_lc(lc)
+
+    return [start, cylinder, end, inner_cylinder]
+
+# start, cylinder, end, inner_cylinder = smooth_annulus(2, 1, 10, 0.5, -0.1, -0.4, 5e-1)
+# geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
+# geom.model.remove_physical_groups()
+# geom.model.remove()
+# geom.generate_mesh()
+# geom.add_bspline_groups([[1, 2, 3, 4]])
+# geom.model_to_fenics(show_mesh=True)
+# geom.create_function_space("Lagrange", 3)

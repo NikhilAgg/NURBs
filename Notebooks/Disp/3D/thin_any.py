@@ -35,7 +35,7 @@ def create_mesh(ro, ri, l, epsilon, typ, param_ind, lc, degree):
     geom.model.remove()
     geom.generate_mesh()
     geom.add_bspline_groups([[1, 2, 3, 4]])
-    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
+    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=True)
     geom.create_function_space("Lagrange", degree)
 
     return geom
@@ -51,8 +51,6 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     ds = ufl.Measure("ds", domain=geom.msh, subdomain_data=geom.facet_tags)
     Z=1
     second_term = (1j*c/Z) * ufl.inner(p_adj, p)*ds(2) + (1j*c/Z) * ufl.inner(p_adj, p)*ds(4)
-    Z=100000000000000000000000000
-    second_term += (1j*c/Z) * ufl.inner(p_adj, p)*ds(1) + (1j*c/Z) * ufl.inner(p_adj, p)*ds(3)
     second_term_val = fem.assemble_scalar(fem.form(second_term))
 
     norm_const = first_term_val + second_term_val
@@ -66,7 +64,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(ro, ri, l, epsilon, typ, param_ind, dw=None, omega_old=None, ep_step=0):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, param_ind, l, degree)
+    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, param_ind, 5e-2, degree)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {1: {'Neumann'},
@@ -84,7 +82,7 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, param_ind, dw=None, omega_old=None,
     A = matrices.A
     C = matrices.C
 
-    target =  c_const * np.pi * 1.4
+    target =  4.974858 #c_const * np.pi * 1.4
     if dw == None:
         E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
         i = 0
@@ -102,7 +100,7 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, param_ind, dw=None, omega_old=None,
     p_adj = normalize_magnitude(p_adj)
     
     p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
-    # plot_slices(geom.msh, geom.V, p)
+    plot_slices(geom.msh, geom.V, p)
     # with XDMFFile(geom.msh.comm, "facet_tags.xdmf", "w") as xdmf:
     #     xdmf.write_mesh(geom.msh)
     #     xdmf.write_function(p)
@@ -127,7 +125,7 @@ cache = False
 ep_step = 0.001
 ro = 0.5
 ri = 0.25
-l = 1e-2
+l = 0.05
 param_ind = (0, 4)
 typ = 'control point'
 

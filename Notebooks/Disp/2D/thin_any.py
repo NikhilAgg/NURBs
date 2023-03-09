@@ -33,7 +33,7 @@ def create_mesh(ro, ri, epsilon, lc, degree, typ, bspline_ind, param_ind):
     geom.model.remove()
     geom.generate_mesh()
     geom.add_bspline_groups([[9], [10]])
-    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
+    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=True)
     geom.create_function_space("Lagrange", degree)
 
     return geom
@@ -73,14 +73,26 @@ def find_eigenvalue(ro, ri, epsilon, typ, bspline_ind, param_ind):
     degree = 3
     c_const = np.sqrt(1)
     geom = create_mesh(ro, ri, epsilon, 5e-2, degree, typ, bspline_ind, param_ind)
-    geom.msh = mesh.create_rectangle(MPI.COMM_WORLD, [[0, -epsilon], [1, 1]], [100, 100])
-    geom.V = fem.FunctionSpace(geom.msh, ("Lagrange", 3))
+    # geom.msh = mesh.create_rectangle(MPI.COMM_WORLD, [[0, -epsilon], [1, 1]], [100, 100])
+    # geom.V = fem.FunctionSpace(geom.msh, ("Lagrange", degree))
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {9: {'Dirichlet'},
                            10: {'Dirichlet'}}
     ds = ufl.ds
     facet_tags = geom.facet_tags
+
+    # boundaries = [(1, lambda x: np.isclose(x[0], 0)),
+    #           (2, lambda x: np.isclose(x[0], 1)),
+    #           (3, lambda x: np.isclose(x[1], -epsilon)),
+    #           (4, lambda x: np.isclose(x[1], 1))]
+    
+    # ds, facet_tags = tag_boundaries(geom.msh, boundaries=boundaries, return_tags=True)
+
+    # boundary_conditions = {4: {'Neumann'},
+    #                     3: {'Neumann'},
+    #                     2: {'Neumann'},
+    #                     1: {'Neumann'}}
 
     matrices = PassiveFlame(geom.msh, facet_tags, boundary_conditions, c , degree = degree)
 
@@ -99,16 +111,21 @@ def find_eigenvalue(ro, ri, epsilon, typ, bspline_ind, param_ind):
     p_adj = normalize_magnitude(p_adj)
     
     p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
-    plot_mesh(geom.msh, geom.V, p)
+    # plot_mesh(geom.msh, geom.V, p)
 
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(ro, ri, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie, ep_list):
+def find_shapegrad_dirichlet(omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie, ep_list):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
+
+    # p_adj = conjugate_function(p_adj)
+    # G = ufl.div(p_adj*(c**2)*ufl.grad(p))
+
+
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], flip_norm=True, tie=tie), ep_list)
+    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], tie=tie), ep_list)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -116,7 +133,7 @@ def find_shapegrad_dirichlet(ro, ri, omega, p, p_adj, geom, ds, c, typ, bspline_
 
 
 cache = False
-ep_step = 0.001
+ep_step = 0.01
 ro = 0.5
 ri = 0.25
 param_ind = 4
@@ -132,11 +149,14 @@ else:
 
 
 omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, 0, typ, bspline_ind, param_ind)
-dw = find_shapegrad_dirichlet(ro, ri, omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie, ep_list)
+dw = find_shapegrad_dirichlet(omega, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, tie, ep_list)
 x_points = []
 y_points = []
 omegas = [omega.real]
 print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
+with XDMFFile(geom.msh.comm, f"./Notebooks/Disp/2D/paraview/thin_any/{0.005}.xdmf", "w") as xdmf:
+        xdmf.write_mesh(geom.msh)
+        xdmf.write_function(p)
 
 for i in range(1, 6):
     epsilon = ep_step*i

@@ -27,7 +27,7 @@ import time
 
 
 def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree):
-    start, cylinder, end, inner_cylinder = annulus(ro, ri, l, 0, 0, 0, lc)
+    start, cylinder, end, inner_cylinder = smooth_annulus(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
     geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon)
     geom.model.remove_physical_groups()
@@ -62,7 +62,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, omega_old=None, ep_step=0):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, bspline_ind, param_ind, 5e-2, degree)
+    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, bspline_ind, param_ind, 2e-1, degree)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {1: {'Dirichlet'},
@@ -81,16 +81,7 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, om
     C = matrices.C
 
     target =  c_const * np.pi * 1.4
-    if dw == None:
-        E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
-        i = 0
-    else:
-        E = eps_solver(A, C, target**2, nev = 5, two_sided=True)
-        dots = []
-        for i in range(5):
-            omega, p = normalize_eigenvector(geom.msh, E, i, degree=degree, which='right')
-            dots.append(abs(omega - (omega_old + dw * epsilon)))
-        i = np.argmin(dots)
+    E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
             
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     omega_adj, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
@@ -124,11 +115,11 @@ ro = 0.5
 ri = 0.25
 l = 1
 bspline_ind = (0, 0)
-param_ind = [0, 0]
+param_ind = [1, 4] #1, 4 for control point -1, 1, 1 and 0, 5 for weight
 typ = 'control point'
 
 if typ == "control point":
-    ep_list = np.array([1., 0., 0.])
+    ep_list = np.array([-1., 1., 1.])
 elif typ == "weight":
     ep_list = 1
 
@@ -139,7 +130,9 @@ y_points = [0]
 omegas = [omega1.real]
 omega = omega1
 print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
-
+with XDMFFile(geom.msh.comm, f"./Notebooks/Disp/3D/paraview/annulus_any/{0.005}.xdmf", "w") as xdmf:
+        xdmf.write_mesh(geom.msh)
+        xdmf.write_function(p)
 
 if cache:
     pass
@@ -154,9 +147,11 @@ else:
 
         print(f"x_points = {x_points}")
         print(f"y_points = {y_points}")
+        print(f"y_points = {omegas}")
         print(f"delta_ws = {[(omegas[i] - omegas[i-1])/ep_step for i in range(1, len(omegas))]}")
+        print(f"dw = {dw}\n\n\n\n")
 
-print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
+
 plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')
 plt.plot(x_points, y_points)
 plt.xlabel('$\epsilon^2$')

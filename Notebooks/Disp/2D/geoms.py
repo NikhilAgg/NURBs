@@ -259,6 +259,7 @@ def thin(ro, ri, epsilon, lc):
         2
     )
     circle.set_uniform_lc(lc)
+    circle.flip_norm = True
 
     dx = (ro - 0.75*ri)*0.75
     dy = (ro - ri) * 0.75
@@ -281,5 +282,59 @@ def thin(ro, ri, epsilon, lc):
         2
     )
     inner_circle.set_uniform_lc(lc)
+    inner_circle.flip_norm = False
+
+    return circle, inner_circle
+
+def smooth_thin(ro, ri, epsilon, lc):
+    ro = ro + epsilon
+    points = [
+        [2*ro, 0],
+        [2*ro, ro],
+        [0, ro],
+        [-2*ro, ro],
+        [-2*ro, 0],
+        [-2*ro, -ro],
+        [0, -ro],
+        [2*ro, -ro],
+        [2*ro, 0]
+    ]
+
+    weights = [1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1, 1/2**0.5, 1]
+    knots = [0, 1/6, 2/6, 3/6, 4/6, 5/6, 1]
+    multiplicities = [4, 1, 1, 1, 1, 1, 4]
+
+    circle = NURBsCurve(
+        points,
+        weights,
+        knots,
+        multiplicities,
+        3
+    )
+    circle.set_uniform_lc(lc)
+    circle.flip_norm = True
+
+    dx = (ro - 0.75*ri)*0.75
+    dy = (ro - ri) * 0.75
+    points = [
+        [1.25*ri + dx, 0 + dy],
+        [1.25*ri + dx, ri + dy],
+        [0 + dx, ri + dy],
+        [-1.25*ri + dx, ri + dy],
+        [-1.25*ri + dx, 0 + dy],
+        [-1.25*ri + dx, -ri + dy],
+        [0 + dx, -ri + dy],
+        [1.25*ri+ dx, -ri + dy],
+        [1.25*ri + dx, 0 + dy]
+    ]
+    inner_circle = NURBsCurve(
+        points,
+        weights,
+        knots,
+        multiplicities,
+        3
+    )
+    inner_circle.set_uniform_lc(lc)
+    inner_circle.flip_norm = False
 
     return circle, inner_circle
