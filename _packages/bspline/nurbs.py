@@ -453,7 +453,7 @@ class NURBsSurface:
         lc: float
             Element size
         """
-        self.lc = np.ones(self.ctrl_points.shape) * lc
+        self.lc = np.ones(self.ctrl_points.shape[0:2]) * lc
 
 
     def is_periodic(self):

@@ -18,13 +18,15 @@ from helmholtz_x.eigensolvers_x import eps_solver
 from helmholtz_x.eigenvectors_x import normalize_eigenvector
 from helmholtz_x.petsc4py_utils import conjugate_function
 from dolfinx_utils_temp import *
-from nurbs_geometry import NURBs3DGeometry
+from bspline.nurbs_geometry import NURBs3DGeometry
 from geoms import *
 import numpy as np
 
 
 class WriteResults:
     def __init__(self, typ, bspline_ind, param_ind):
+        if MPI.COMM_WORLD.Get_rank() != 0:
+            return 
         self.filename = pth / f"results/results_{typ}{bspline_ind}{param_ind}.py"
 
         try:
@@ -35,10 +37,14 @@ class WriteResults:
             self.lines = ""
 
     def read_lines(self):
+        if MPI.COMM_WORLD.Get_rank() != 0:
+            return 
         with open(self.filename, "r") as f:
             self.lines = f.read()
 
     def new_test(self, ro, ri, l, ep_list, ep_step, lc):
+        if MPI.COMM_WORLD.Get_rank() != 0:
+            return 
         self.read_lines()
         self.ro = ro
         self.ri = ri
@@ -48,6 +54,8 @@ class WriteResults:
         self.lc = lc
 
     def write_results(self, x_points, y_points, omegas, dw, ep_step, lc):
+        if MPI.COMM_WORLD.Get_rank() != 0:
+            return 
         with open(self.filename, "w") as f:
             f.write(self.lines)
             f.write(f"# ro = {self.ro}\t ri = {self.ri}\t l = {self.l}\t ep_list = {self.ep_list} \t ep_step = {self.ep_step}\t lc = {self.lc}\n")
@@ -59,10 +67,12 @@ class WriteResults:
             f.write(f"plt.plot(x_points, y_points, label = {lc})\n\n\n")
 
 
-def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree):
+def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_inds, lc, degree, ep_list):
     start, cylinder, end, inner_cylinder = smooth_annulus(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-    geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon)
+    for i, param_ind in enumerate(param_inds):
+        geom.bsplines[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]][0] = lc
+        geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon*ep_list[i])
     geom.model.remove_physical_groups()
     geom.model.remove()
     geom.generate_mesh()
@@ -92,10 +102,10 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     return [p, p_adj]
 
 
-def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind):
-    degree = 3
+def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list):
+    degree = 2
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree)
+    geom = create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree, ep_list)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {1: {'Dirichlet'},
@@ -115,19 +125,24 @@ def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind):
     E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     _, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
+
     p = normalize_magnitude(p)
     p_adj = normalize_magnitude(p_adj)
+    
     p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
+
     # plot_slices(geom.msh, geom.V, p)
 
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list):
+def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds, ep_list):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
 
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list)
+    C = fem.Function(geom.V)
+    for i, param_ind in enumerate(param_inds):
+        C += np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list[i])
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -135,7 +150,7 @@ def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_ind,
 
 
 def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fil):
-    omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, lc, 0, typ, bspline_ind, param_ind)
+    omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, lc, 0, typ, bspline_ind, param_ind, [0]*len(param_ind))
     dw = find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
     x_points = [0]
     y_points = [0]
@@ -143,32 +158,34 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
 
     for i in range(1, 6):
         epsilon = ep_step*i 
-        omega_new = find_eigenvalue(ro, ri, l, lc, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
+        omega_new = find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list)[0]
+        
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
         y_points.append(abs(Delta_w_FD - dw*epsilon))
         omegas.append(omega_new.real)
 
         fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
-
+        
 
 ep_step = 0.01
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [1e-1, 9e-2, 8e-2, 7e-2, 6e-2, 5e-2, 4e-2, 3e-2]
-bspline_inds = [(0, 0), (0, 0)]
-param_inds = [[1, 4], [0, 5]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight
-typs = ['control point', 'weight']
+lcs = [8e-2]
+
+bspline_inds = [(0, 2)] #, (0, 2)]
+param_inds = [[[1, 4]]] #, [[1, 2], [1, 3], [1, 4], [1, 5]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight
+typs = ['weight']
 
 for lc in lcs:
     for i in range(len(typs)):
         if typs[i] == "control point":
-            ep_list = np.array([-1., 1., 1.])
+            ep_list = np.array([[-1., 1., 1.]])
         elif typs[i] == "weight":
-            ep_list = 1
+            ep_list = [1]
 
-        fil = WriteResults(typs[i], bspline_inds[0], param_inds[0])
+        fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
         
         fil.new_test(ro, ri, l, ep_list, ep_step, lc)
-        taylor_test(ro, ri, l, lc, bspline_inds[0], param_inds[0], typs[i], ep_step, ep_list, fil)
+        taylor_test(ro, ri, l, lc, bspline_inds[i], param_inds[i], typs[i], ep_step, ep_list, fil)

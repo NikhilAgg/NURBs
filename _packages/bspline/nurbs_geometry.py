@@ -20,6 +20,7 @@ class NURBsGeometry:
         #Gmsh
         self.gmsh = gmsh
         self.gmsh.initialize() if not self.gmsh.isInitialized() else None
+        self.gmsh.option.setNumber("General.Terminal", 0)
         self.model = self.gmsh.model
         self.factory = self.model.occ
         self.node_to_params = {}
@@ -62,6 +63,13 @@ class NURBsGeometry:
     def model_to_fenics(self, comm=MPI.COMM_WORLD, rank=0, show_mesh=False):
         self.model.mesh.generate(self.dim)
         self.msh, self.cell_markers, self.facet_tags = gmshio.model_to_mesh(self.model, comm, rank)
+
+        t_imap = self.msh.topology.index_map(self.msh.topology.dim)
+        num_cells = t_imap.size_local + t_imap.num_ghosts
+        total_num_cells = MPI.COMM_WORLD.allreduce(num_cells, op=MPI.SUM) #sum all cells and distribute to each process
+        if MPI.COMM_WORLD.Get_rank()==0:
+            print("\nNumber of cells:  {:,}".format(total_num_cells))
+            print("Number of cores: ", MPI.COMM_WORLD.Get_size(), "\n")
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()
@@ -251,6 +259,7 @@ class NURBs2DGeometry(NURBsGeometry):
 
         self.factory.synchronize()
         self.model.addPhysicalGroup(self.dim, [self.surface_tag], 1)
+        self.gmsh.option.set_number("Mesh.MeshSizeFromParametricPoints", 1)
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()
@@ -304,6 +313,7 @@ class NURBs3DGeometry(NURBsGeometry):
         self.volume_tag = self.factory.add_volume([*surfaceloop_tags], 1)
         self.factory.synchronize()
         self.model.addPhysicalGroup(self.dim, [self.volume_tag], 1)
+        self.gmsh.option.set_number("Mesh.MeshSizeFromParametricPoints", 1)
 
         if show_mesh and '-nopopup' not in sys.argv:
             gmsh.fltk.run()

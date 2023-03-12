@@ -8,7 +8,8 @@ if module_path not in sys.path:
 if str(pth) not in sys.path:
     sys.path.append(str(pth))
 
-from nurbs import NURBsSurface
+from bspline.nurbs import NURBsSurface
+from bspline.nurbs_geometry import NURBs3DGeometry
 import gmsh
 import sys
 from dolfinx.io import gmshio
@@ -704,8 +705,10 @@ def smooth_annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
 
     return [start, cylinder, end, inner_cylinder]
 
-# start, cylinder, end, inner_cylinder = smooth_annulus(2, 1, 10, 0.5, -0.1, -0.4, 5e-1)
+# start, cylinder, end, inner_cylinder = smooth_annulus(0.5, 0.25, 1, 0, 0, 0, 0.1)
 # geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
+# geom.bsplines[0][2].lc[1][0] = 0.002
+# print(geom.bsplines[0][0].lc)
 # geom.model.remove_physical_groups()
 # geom.model.remove()
 # geom.generate_mesh()

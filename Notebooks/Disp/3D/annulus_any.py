@@ -26,10 +26,11 @@ from dolfinx_utils.utils import *
 import time
 
 
-def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree):
+def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_inds, lc, degree, ep_lists):
     start, cylinder, end, inner_cylinder = smooth_annulus(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-    geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon)
+    for i, param_ind in enumerate(param_inds):
+        geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon*ep_lists[i])
     geom.model.remove_physical_groups()
     geom.model.remove()
     geom.generate_mesh()
@@ -59,10 +60,10 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
     return [p, p_adj]
 
 
-def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, omega_old=None, ep_step=0):
+def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, ep_list=[0]):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(ro, ri, l, epsilon*ep_step, typ, bspline_ind, param_ind, 2e-1, degree)
+    geom = create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, 2e-1, degree, ep_list)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {1: {'Dirichlet'},
@@ -97,12 +98,14 @@ def find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, dw=None, om
     return [omega, p, p_adj, geom, ds, c]
 
 
-def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list):
+def find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_inds, ep_lists):
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     
 
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list)
+    C = fem.Function(geom.V)
+    for i, param_ind in enumerate(param_inds):
+        C += np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_lists[i])
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -115,31 +118,31 @@ ro = 0.5
 ri = 0.25
 l = 1
 bspline_ind = (0, 0)
-param_ind = [1, 4] #1, 4 for control point -1, 1, 1 and 0, 5 for weight
-typ = 'control point'
+param_ind = [[1, 2], [1,3], [1, 4], [1, 5]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight
+typ = 'weight'
 
 if typ == "control point":
-    ep_list = np.array([-1., 1., 1.])
+    ep_list = [np.array([-1., 1., 1.])]
 elif typ == "weight":
-    ep_list = 1
+    ep_list = [-1, 1, -1, 1]
 
-omega1, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind)
+omega1, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, 0, typ, bspline_ind, param_ind, [0]*len(param_ind))
 dw = find_shapegrad_dirichlet(ro, ri, p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
 x_points = [0]
 y_points = [0]
 omegas = [omega1.real]
 omega = omega1
 print(f"\n\n\n\n\n THIS IS DW: {dw}\n\n\n\n")
-with XDMFFile(geom.msh.comm, f"./Notebooks/Disp/3D/paraview/annulus_any/{0.005}.xdmf", "w") as xdmf:
-        xdmf.write_mesh(geom.msh)
-        xdmf.write_function(p)
+# with XDMFFile(geom.msh.comm, f"./Notebooks/Disp/3D/paraview/annulus_any/{0.005}.xdmf", "w") as xdmf:
+#         xdmf.write_mesh(geom.msh)
+#         xdmf.write_function(p)
 
 if cache:
     pass
 else:
     for i in range(1, 6):
         epsilon = ep_step*i 
-        omega_new = find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, None, omega1, ep_list)[0]
+        omega_new = find_eigenvalue(ro, ri, l, epsilon, typ, bspline_ind, param_ind, ep_list)[0]
         Delta_w_FD = omega_new.real - omega.real
         x_points.append(epsilon**2)
         y_points.append(abs(Delta_w_FD - dw*epsilon))
