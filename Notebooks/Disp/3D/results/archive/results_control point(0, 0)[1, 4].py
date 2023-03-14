@@ -46,4 +46,7 @@ dw = (1.7863910641778593-2.0664226963202562e-17j)
 plt.plot(x_points, y_points, label = 0.06)
 
 
+plt.xlabel('$\epsilon^2$')
+plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
+plt.legend()
 plt.show()

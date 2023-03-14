@@ -96,8 +96,8 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 
     norm_const = first_term_val + second_term_val
 
-    p.vector[:] = p.vector[:]/np.sqrt(norm_const)
-    p_adj.vector[:] = p_adj.vector[:]/np.sqrt(norm_const)
+    p = p/np.sqrt(norm_const)
+    p_adj = p_adj/np.sqrt(norm_const)
 
     return [p, p_adj]
 
@@ -126,8 +126,8 @@ def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     _, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
 
-    p = normalize_magnitude(p)
-    p_adj = normalize_magnitude(p_adj)
+    # p = normalize_magnitude(p)
+    # p_adj = normalize_magnitude(p_adj)
     
     p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
 
@@ -141,6 +141,7 @@ def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds
 
     geom.create_node_to_param_map()
     C = fem.Function(geom.V)
+    dw = 0
     for i, param_ind in enumerate(param_inds):
         C += np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind), ep_list[i])
 
@@ -152,6 +153,7 @@ def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds
 def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fil):
     omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, lc, 0, typ, bspline_ind, param_ind, [0]*len(param_ind))
     dw = find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
+
     x_points = [0]
     y_points = [0]
     omegas = [omega.real]
@@ -168,14 +170,14 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
-ep_step = 0.01
+ep_step = 0.02
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [8e-2]
+lcs = [4e-2]
 
 bspline_inds = [(0, 2)] #, (0, 2)]
-param_inds = [[[1, 4]]] #, [[1, 2], [1, 3], [1, 4], [1, 5]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight
+param_inds = [[[1, 3]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
 typs = ['weight']
 
 for lc in lcs:
@@ -183,7 +185,7 @@ for lc in lcs:
         if typs[i] == "control point":
             ep_list = np.array([[-1., 1., 1.]])
         elif typs[i] == "weight":
-            ep_list = [1]
+            ep_list = [1, 1]
 
         fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
         

@@ -45,16 +45,33 @@ import matplotlib.pyplot as plt
 # dw = (-0.024106652432649076+2.7885570364770995e-19j)
 # plt.plot(x_points, y_points, label = 0.06)
 
+# # ro = 0.5	 ri = 0.25	 l = 1	 ep_list = 1 	 ep_step = 0.01	 lc = 0.06
 x_points = [0, 0.0001, 0.0004, 0.0009, 0.0016, 0.0025000000000000005]
-delta_ws = [-0.027493437997883063, -0.025847374343285412, -0.0248356674434513394, -0.022662328394407183, -0.021535430438568426]
-omegas = [6.003671631926952]
-for i, d in enumerate(delta_ws):
-    omegas.append(omegas[i] + d*0.01)
-
-y_points = []
+y_points = [0.0, 1.0032144348137706e-05, 3.862492524220329e-05, 7.933477513333287e-05, 0.00012977801551627977, 0.00018749023545705512]
+omegas = [6.003671631926952, 6.003400597546974, 6.003148123803541, 6.0029077671291065, 6.002677143845163, 6.002453789540777]
+delta_ws = [-0.027103437997883062, -0.025247374343285413, -0.02403566744345134, -0.023062328394407184, -0.022335430438568424]
 dw = (-0.028106652432649076+2.7885570364770995e-19j)
-for i, w in enumerate(omegas):
-    y_points.append(abs(w - (omegas[0] + dw * i*0.01)))
+plt.plot(x_points, y_points, label = 0.01)
 
-plt.plot(x_points, y_points, label = 0.06)
+# x_points = [0, 0.0001, 0.0004, 0.0009, 0.0016, 0.0025000000000000005]
+# delta_ws = [-0.027103437997883063, -0.025247374343285412, -0.0240356674434513394, -0.023062328394407183, -0.022335430438568426]
+# omegas = [6.003671631926952]
+# for i, d in enumerate(delta_ws):
+#     omegas.append(omegas[i] + d*0.01)
+
+# y_points = []
+# dw = (-0.028106652432649076+2.7885570364770995e-19j)
+# for i, w in enumerate(omegas):
+#     y_points.append(abs(w - (omegas[0] + dw * i*0.01)))
+
+# print(f"x_points = {x_points}")
+# print(f"y_points = {y_points}")
+# print(f"omegas = {omegas}")
+# print(f"delta_ws = {delta_ws}")
+# print(f"dw = {dw}")
+
+# plt.plot(x_points, y_points, label = 0.06)
+plt.xlabel('$\epsilon^2$')
+plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
+plt.legend()
 plt.show()
