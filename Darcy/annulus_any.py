@@ -174,7 +174,7 @@ ep_step = 0.02
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [4e-2]
+lcs = [4e-2, 3e-2, 2.5e-2, 2e-2, 1.5e-2, 1e-2]
 
 bspline_inds = [(0, 2)] #, (0, 2)]
 param_inds = [[[1, 3]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
@@ -185,7 +185,7 @@ for lc in lcs:
         if typs[i] == "control point":
             ep_list = np.array([[-1., 1., 1.]])
         elif typs[i] == "weight":
-            ep_list = [1, 1]
+            ep_list = [1]
 
         fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
         
