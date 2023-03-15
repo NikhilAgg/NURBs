@@ -1,9 +1,30 @@
+"""A module that contains classes and helper functions that allow for the definintion of Nurbs curves and surfaces. The module includes
+functions for calculting points along the curves, derviatives, displacement fields, etc"""
+
 import numpy as np
 import math
 from itertools import chain
 
 class NURBsCurve:
     def __init__(self, ctrl_points=[], weights=None, knots=[], multiplicities=None, degree=None, lc=None):
+        """
+        Sets the NURBs Parameters to those passed in as arguements. 
+
+        Parameters
+        ----------------------------
+        ctrl_points: list of lists or 2d numpy array
+            A list of the control points for the curve. 
+        weights: list or 1d numpy array
+            A list of weights corresponding to each of the control points defined in the arguement ctrl_points. If none are 
+            given, the weights are all set to 1
+        knots: list
+            A list of the unique knot/node values of the curve
+        multiplicities: list of ints
+            A list of containing the number of times each knot is repeated. Note that the number of unique knot values * sum(multiplicities) must equal
+            the number of control points + degree + 1 and the first and last multiplicity must be equal to degree + 1 to defined a clamped bspline
+        degree: int
+            The degree of the bspline curve
+        """
         self.initialise_nurb(ctrl_points, weights, knots, multiplicities, degree)
         
         self.degree = degree
@@ -52,7 +73,8 @@ class NURBsCurve:
     def set_uniform_lc(self, lc):
         """
         Sets lc for each control point to the value passed in. Lc defines the element size near each control point when the 
-        curve is used to defined a mesh using a NURBsGeometry Object 
+        curve is used to defined a mesh using a NURBsGeometry Object. NOTE: Current versions of gmsh don't support using different
+        element sizes for different control points - as a result the lc of the first element is the only one that will be used.
 
         Parameters
         ----------------------------
@@ -420,6 +442,32 @@ class NURBsCurve:
 
 class NURBsSurface:
     def __init__(self, ctrl_points=[], weights=None, knotsU=[], knotsV=[], multiplicitiesU=None, multiplicitiesV=None, degreeU=None, degreeV=None, lc=None):
+        """
+        Sets the NURBs Parameters to those passed in as arguements. 
+
+        Parameters
+        ----------------------------
+        ctrl_points: list of lists or 2d numpy array
+            A list of the control points for the curve. 
+        weights: list or 1d numpy array
+            A list of weights corresponding to each of the control points defined in the arguement ctrl_points. If none are 
+            given, the weights are all set to 1
+        knotsU: list
+            A list of the unique knot/node values of the curve along lines of constant V
+        knotsV: list
+            A list of the unique knot/node values of the curve along lines of constant U
+        multiplicitiesU: list of ints
+            A list of containing the number of times each knotU is repeated. Note that the number of unique knot values * sum(multiplicities) must equal
+            the number of control points + degree + 1 and the first and last multiplicity must be equal to degree + 1 to defined a clamped bspline
+        multiplicitiesV: list of ints
+            A list of containing the number of times each knotV is repeated. Note that the number of unique knot values * sum(multiplicities) must equal
+            the number of control points + degree + 1 and the first and last multiplicity must be equal to degree + 1 to defined a clamped bspline
+        degreeU: int
+            The degree of the bspline curve in the U direction
+        degreeV: int
+            The degree of the bspline curve in the V direction
+
+        """
         self.ctrl_points = np.array(ctrl_points)
         self.weights = np.array(weights) if np.any(weights!=None) else np.ones(self.ctrl_points.shape)
         self.nV = self.ctrl_points.shape[0]
@@ -446,7 +494,8 @@ class NURBsSurface:
     def set_uniform_lc(self, lc):
         """
         Sets lc for each control point to the value passed in. Lc defines the element size near each control point when the 
-        surface is used to defined a mesh using a NURBsGeometry Object 
+        surface is used to defined a mesh using a NURBsGeometry Object. NOTE: Current versions of gmsh don't support using different
+        element sizes for different control points - as a result the lc of the first element is the only one that will be used.
 
         Parameters
         ----------------------------
