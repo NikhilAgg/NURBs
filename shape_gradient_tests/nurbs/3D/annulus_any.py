@@ -71,7 +71,7 @@ def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_inds, lc, degree, ep
     start, cylinder, end, inner_cylinder = smooth_annulus(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
     for i, param_ind in enumerate(param_inds):
-        geom.bsplines[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]][0] = lc
+        geom.nurbs[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]][0] = lc
         geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon*ep_list[i])
     geom.model.remove_physical_groups()
     geom.model.remove()
@@ -153,6 +153,7 @@ def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds
 def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fil):
     omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, lc, 0, typ, bspline_ind, param_ind, [0]*len(param_ind))
     dw = find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
+    print(dw)
 
     x_points = [0]
     y_points = [0]
@@ -167,18 +168,18 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         y_points.append(abs(Delta_w_FD - dw*epsilon))
         omegas.append(omega_new.real)
 
-        fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
+        # fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
 ep_step = 0.02
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [4e-2, 3e-2, 2.5e-2, 2e-2, 1.5e-2, 1e-2]
+lcs = [2e-1]
 
-bspline_inds = [(0, 2)] #, (0, 2)]
-param_inds = [[[1, 3]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
-typs = ['weight']
+bspline_inds = [(0, 2), (0, 0)] #, (0, 2)]
+param_inds = [[[1, 3]], [[1, 4]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
+typs = ['weight', 'control point']
 
 for lc in lcs:
     for i in range(len(typs)):
@@ -187,7 +188,8 @@ for lc in lcs:
         elif typs[i] == "weight":
             ep_list = [1]
 
-        fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
+        # fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
+        fil = 0
         
-        fil.new_test(ro, ri, l, ep_list, ep_step, lc)
+        # fil.new_test(ro, ri, l, ep_list, ep_step, lc)
         taylor_test(ro, ri, l, lc, bspline_inds[i], param_inds[i], typs[i], ep_step, ep_list, fil)

@@ -9,18 +9,18 @@ import ufl
 import time
 
 def change_param(geom, typ, bspline_ind, param_ind, epsilon):
-    bsplines = geom.get_deriv_bsplines("control point", bspline_ind, param_ind)
+    bsplines = geom.get_deriv_nurbs("control point", bspline_ind, param_ind)
     for bspline in bsplines:
         params = bsplines[bspline]
         for param_inds in params:
             if typ == "control point":
-                geom.bsplines[bspline[0]][bspline[1]].ctrl_points[param_inds[0]][param_inds[1]] += epsilon
+                geom.nurbs[bspline[0]][bspline[1]].ctrl_points[param_inds[0]][param_inds[1]] += epsilon
             elif typ == "weight":
-                geom.bsplines[bspline[0]][bspline[1]].weights[param_inds[0]][param_inds[1]] += epsilon
+                geom.nurbs[bspline[0]][bspline[1]].weights[param_inds[0]][param_inds[1]] += epsilon
 
 def get_weight_C(geom, bspline_ind, param_ind):
     Cw = fem.Function(geom.V)
-    bsplines = geom.get_deriv_bsplines("control point", bspline_ind, param_ind)
+    bsplines = geom.get_deriv_nurbs("control point", bspline_ind, param_ind)
     for bspline in bsplines:
         params = bsplines[bspline]
         for param_inds in params:

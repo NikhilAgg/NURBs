@@ -173,14 +173,14 @@ def annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
 
 
 def edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon):
-    bsplines = geom.get_deriv_bsplines("control point", bspline_ind, param_ind)
+    bsplines = geom.get_deriv_nurbs("control point", bspline_ind, param_ind)
     for bspline in bsplines:
         params = bsplines[bspline]
         for param_inds in params:
             if typ == "control point":
-                geom.bsplines[bspline[0]][bspline[1]].ctrl_points[param_inds[0]][param_inds[1]] += epsilon
+                geom.nurbs[bspline[0]][bspline[1]].ctrl_points[param_inds[0]][param_inds[1]] += epsilon
             elif typ == "weight":
-                geom.bsplines[bspline[0]][bspline[1]].weights[param_inds[0]][param_inds[1]] += epsilon
+                geom.nurbs[bspline[0]][bspline[1]].weights[param_inds[0]][param_inds[1]] += epsilon
             else:
                 raise ValueError("Type is not defined")
 
@@ -707,8 +707,8 @@ def smooth_annulus(ro0, ri0, l0, ro_ep, ri_ep, l_ep, lc):
 
 # start, cylinder, end, inner_cylinder = smooth_annulus(0.5, 0.25, 1, 0, 0, 0, 0.1)
 # geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
-# geom.bsplines[0][2].lc[1][0] = 0.002
-# print(geom.bsplines[0][0].lc)
+# geom.nurbs[0][2].lc[1][0] = 0.002
+# print(geom.nurbs[0][0].lc)
 # geom.model.remove_physical_groups()
 # geom.model.remove()
 # geom.generate_mesh()

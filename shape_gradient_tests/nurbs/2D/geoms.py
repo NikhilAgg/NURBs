@@ -209,14 +209,14 @@ def circle2(r, epsilon, lc, show_mesh=False):
 
 def edit_param_2d(geom, typ, bspline_ind, param_ind, epsilon):
     i, j = bspline_ind
-    bspline = geom.bsplines[i][j]
+    bspline = geom.nurbs[i][j]
 
     if typ == "control point":
-        bsplines = geom.get_deriv_bsplines("control point", bspline_ind, [param_ind])
+        bsplines = geom.get_deriv_nurbs("control point", bspline_ind, [param_ind])
         for bspline in bsplines:
             params = bsplines[bspline]
             for param_inds in params:
-                    geom.bsplines[bspline[0]][bspline[1]].ctrl_points[param_inds[0]] += epsilon
+                    geom.nurbs[bspline[0]][bspline[1]].ctrl_points[param_inds[0]] += epsilon
 
     elif typ == "weight":
         bspline.weights[param_ind] += epsilon

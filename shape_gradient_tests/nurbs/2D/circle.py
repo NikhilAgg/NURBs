@@ -104,7 +104,7 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c):
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
     for i in range(8):
-        C += np.dot(geom.get_displacement_field("control point", (0, 0), [i], flip=True), (np.array(geom.bsplines[0][0].ctrl_points[i])/r))
+        C += np.dot(geom.get_displacement_field("control point", (0, 0), [i], flip=True), (np.array(geom.nurbs[0][0].ctrl_points[i])/r))
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 

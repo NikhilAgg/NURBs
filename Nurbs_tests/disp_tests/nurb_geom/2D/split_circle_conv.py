@@ -20,8 +20,8 @@ def func(dx, r):
 
     C = fem.Function(geom.V)
     for i in range(4):
-        C += np.dot(geom.get_displacement_field("control point", (0, i), [0]), (np.array(geom.bsplines[0][i].ctrl_points[0])/r))
-        C += np.dot(geom.get_displacement_field("control point", (0, i), [1]), (np.array(geom.bsplines[0][i].ctrl_points[1])/r))
+        C += np.dot(geom.get_displacement_field("control point", (0, i), [0]), (np.array(geom.nurbs[0][i].ctrl_points[0])/r))
+        C += np.dot(geom.get_displacement_field("control point", (0, i), [1]), (np.array(geom.nurbs[0][i].ctrl_points[1])/r))
 
     dA = fem.assemble_scalar(fem.form((C)*ufl.ds))
 

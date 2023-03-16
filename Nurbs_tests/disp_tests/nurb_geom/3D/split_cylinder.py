@@ -26,14 +26,14 @@ C = fem.Function(geom.V)
 old = 0
 for j in range(2):
     for i in range(8):
-        C += np.dot(geom.get_displacement_field("control point", (0, 1), [j, i]), (np.r_[geom.bsplines[0][1].ctrl_points[j][i][0:2], [0]]/ro))
+        C += np.dot(geom.get_displacement_field("control point", (0, 1), [j, i]), (np.r_[geom.nurbs[0][1].ctrl_points[j][i][0:2], [0]]/ro))
         temp = fem.assemble_scalar(fem.form((C)*ufl.ds))
         print(temp-old)
         old = temp
 
 for j in range(1):
     for i in range(8):
-        C += np.dot(geom.get_displacement_field("control point", (0, 2), [1, i]), (np.r_[geom.bsplines[0][2].ctrl_points[1][i][0:2], [0]]/ro))
+        C += np.dot(geom.get_displacement_field("control point", (0, 2), [1, i]), (np.r_[geom.nurbs[0][2].ctrl_points[1][i][0:2], [0]]/ro))
         temp = fem.assemble_scalar(fem.form((C)*ufl.ds))
         print(temp-old)
         old = temp

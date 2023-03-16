@@ -101,12 +101,12 @@ def find_shapegrad_dirichlet(ro, ri, typ, p, p_adj, geom, ds, c):
     if typ == "ro":
         for i in range(2):
             for j in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 1), [i, j]), (np.r_[geom.bsplines[0][1].ctrl_points[i][j][0:2], [0]]/ro))
+                C += np.dot(geom.get_displacement_field("control point", (0, 1), [i, j]), (np.r_[geom.nurbs[0][1].ctrl_points[i][j][0:2], [0]]/ro))
 
     elif typ == "ri":
         for i in range(2):
             for j in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 3), [i, j]), (np.r_[geom.bsplines[0][3].ctrl_points[i][j][0:2], [0]]/ri))
+                C += np.dot(geom.get_displacement_field("control point", (0, 3), [i, j]), (np.r_[geom.nurbs[0][3].ctrl_points[i][j][0:2], [0]]/ri))
 
     elif typ == "l":
         for i in range(2):

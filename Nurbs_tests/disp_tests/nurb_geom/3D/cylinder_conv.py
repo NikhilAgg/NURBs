@@ -26,7 +26,7 @@ def func(ro, ri, l, lc, typ):
     if typ == "ro":
         for j in range(2):
             for i in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 1), [j, i]), (np.r_[geom.bsplines[0][1].ctrl_points[j][i][0:2], [0]]/ro))
+                C += np.dot(geom.get_displacement_field("control point", (0, 1), [j, i]), (np.r_[geom.nurbs[0][1].ctrl_points[j][i][0:2], [0]]/ro))
     elif typ == "l":
         for j in range(2):
             for i in range(8):
@@ -34,15 +34,15 @@ def func(ro, ri, l, lc, typ):
     elif typ == "ri":
         for j in range(2):
             for i in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 3), [j, i]), (np.r_[geom.bsplines[0][1].ctrl_points[j][i][0:2], [0]]/ro))
+                C += np.dot(geom.get_displacement_field("control point", (0, 3), [j, i]), (np.r_[geom.nurbs[0][1].ctrl_points[j][i][0:2], [0]]/ro))
     elif typ == "split":
         for j in range(2):
             for i in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 1), [j, i]), (np.r_[geom.bsplines[0][1].ctrl_points[j][i][0:2], [0]]/ro))
+                C += np.dot(geom.get_displacement_field("control point", (0, 1), [j, i]), (np.r_[geom.nurbs[0][1].ctrl_points[j][i][0:2], [0]]/ro))
 
         for j in range(1):
             for i in range(8):
-                C += np.dot(geom.get_displacement_field("control point", (0, 2), [1, i]), (np.r_[geom.bsplines[0][2].ctrl_points[1][i][0:2], [0]]/ro))
+                C += np.dot(geom.get_displacement_field("control point", (0, 2), [1, i]), (np.r_[geom.nurbs[0][2].ctrl_points[1][i][0:2], [0]]/ro))
             
     print(f"\n\nDisplacement Field Calculated - Time taken: {time.time()-t}")
     dA = fem.assemble_scalar(fem.form((C)*ufl.ds))

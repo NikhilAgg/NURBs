@@ -246,7 +246,7 @@ class NURBsGeometry:
                 coord = np.around(coord, self.node_map_decimal_points)
                 
                 if tuple(coord) in self.node_to_params:
-                    C[:, k] = func(self.node_to_params[tuple(coord)], coord)
+                    C[:, k] = func(self.node_to_params[tuple(coord)])
 
             return C
 
