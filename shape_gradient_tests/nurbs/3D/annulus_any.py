@@ -153,7 +153,6 @@ def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds
 def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fil):
     omega, p, p_adj, geom, ds, c = find_eigenvalue(ro, ri, l, lc, 0, typ, bspline_ind, param_ind, [0]*len(param_ind))
     dw = find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_ind, ep_list)
-    print(dw)
 
     x_points = [0]
     y_points = [0]
@@ -168,14 +167,14 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         y_points.append(abs(Delta_w_FD - dw*epsilon))
         omegas.append(omega_new.real)
 
-        # fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
+        fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
 ep_step = 0.02
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [2e-1]
+lcs = [4e-2, 3.75e-2, 3.5e-2, 3.25e-2, 3e-2]
 
 bspline_inds = [(0, 2), (0, 0)] #, (0, 2)]
 param_inds = [[[1, 3]], [[1, 4]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
@@ -188,8 +187,7 @@ for lc in lcs:
         elif typs[i] == "weight":
             ep_list = [1]
 
-        # fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
-        fil = 0
+        fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
         
-        # fil.new_test(ro, ri, l, ep_list, ep_step, lc)
+        fil.new_test(ro, ri, l, ep_list, ep_step, lc)
         taylor_test(ro, ri, l, lc, bspline_inds[i], param_inds[i], typs[i], ep_step, ep_list, fil)

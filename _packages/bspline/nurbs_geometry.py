@@ -151,7 +151,7 @@ class NURBsGeometry:
         ----------------------------
         typ: string
             Either "control point" or "weight" depending on which parameter you want to find the displacement field wrt.
-        nurb_int: tuple of int
+        nurb_ind: tuple of int
             The indicies of the nurb (in self.nurbs) whose parameter you want to edit.
         param_ind: tuple of int
             The indicies of the parameter which the displacement field is calculated wrt. If the nurb is a NURBsCurve the tuple should only 
@@ -198,6 +198,48 @@ class NURBsGeometry:
         degree = degree or self.degree
         cell_type = cell_type or self.cell_type
         return self.function_from_params(dim, get_displacement, cell_type, degree)
+    
+
+    def get_curvature_field(self, nurb_ind=None, flip_norm=None, cell_type=None, degree=None):
+        """
+        Calculates the curvature field along the surface of geometry and stores it in a fenics Function. The returned function will use the function
+        space stored in self.V unless both degree and cell_type are set. The curvature field can be calculated for just one nurb surface/curve or considering all
+        nurbs for the entire curvature field around the boundary
+
+        Parameters
+        ----------------------------
+        nurb_ind: tuple of int
+            The indicies of the nurb (in self.nurbs) for which you want to calculate the curvature field. If the None, the curvature for the entire
+            boundary is calculated. At nodes where two nurbs meet the curvature will be calculated wrt to one of them randomly. (Default: None)
+        flip_norm: bool
+            If true will consider the curvature as the divergence of the unit normal in the opposite direction (since each point will have 2 unit normals
+            corresponding to different directions). Note that this is equivalent to multiplying the result by -1. If None is passed in, 
+            the value of flip in self.flip_norm for each nurb will be used (default: None)
+        cell_type: string
+            The name of the cell type used in the finite element and for which the returned displacement field will be defined in. If None
+            then the function space in self.V is used (Default: None)
+        degree: int
+            The degree of the basis functions used in the finite element. (Default: None)
+
+        Returns:
+        -------------------------------------------
+        C: fem.Function
+            The displacement field wrt to the passed in parameter. The function will be defined either on the function space using the cell_type
+            and degree passed in or otherwise the one in self.V.
+
+        """
+        def get_curvature(nurbs):
+            nonlocal flip_norm, nurb_ind
+            for indices, params in nurbs:
+                if not nurb_ind or tuple(indices) == tuple(nurb_ind): 
+                    i, j = indices
+                    k = self.nurbs[i][j].get_curvature(*params, flip_norm)
+
+            return k
+
+        degree = degree or self.degree
+        cell_type = cell_type or self.cell_type
+        return self.function_from_params(1, get_curvature, cell_type, degree)
 
     
     def function_from_params(self, dim, func, cell_type=None, degree=None):
