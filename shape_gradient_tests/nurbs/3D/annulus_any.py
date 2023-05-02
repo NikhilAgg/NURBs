@@ -170,7 +170,7 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
-ep_step = 0.02
+ep_step = 0.01
 ro = 0.5
 ri = 0.25
 l = 1
