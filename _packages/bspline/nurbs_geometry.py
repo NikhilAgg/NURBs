@@ -80,10 +80,17 @@ class NURBsGeometry:
         """
         self.nurbs_groups = nurbs_groups
 
+        physical_groups = {}
         if self.nurbs_groups != []:
             for i, row in enumerate(nurbs_groups):
                 for j, group in enumerate(row):
-                    self.model.addPhysicalGroup(self.dim-1, [self.nurbs_tags[i][1][j]], group)
+                    if group in physical_groups:
+                        physical_groups[group].append(self.nurbs_tags[i][1][j])
+                    else:
+                        physical_groups[group] = [self.nurbs_tags[i][1][j]]
+
+        for group in physical_groups.keys():
+            self.model.addPhysicalGroup(self.dim-1, physical_groups[group], group)
 
         if group_names:
             for tag, name in group_names:
@@ -104,6 +111,7 @@ class NURBsGeometry:
         show_mesh: bool
             If true, a gmsh window will open showing the mesh that has been created. (Default: False)
         """
+        self.model.occ.remove_all_duplicates()
         self.model.mesh.generate(self.dim)
         self.msh, self.cell_markers, self.facet_tags = gmshio.model_to_mesh(self.model, comm, rank)
 
@@ -186,8 +194,8 @@ class NURBsGeometry:
   
         def get_displacement(nurbs):
             nonlocal typ, flip_norm, deriv_nurbs, nurb_ind
+            C = np.zeros(dim)
             for indices, params in nurbs:
-                C = np.zeros(dim)
                 if tuple(indices) in deriv_nurbs: 
                     i, j = indices
                     param_ind = deriv_nurbs[tuple(indices)][0]
@@ -365,7 +373,7 @@ class NURBsGeometry:
         self.node_map_decimal_points = decimal_points
         for i, row in enumerate(self.nurbs_tags):
             for j, tag in enumerate(row[1]):
-                nodes = self.model.mesh.getNodes(self.dim-1, tag)[1]
+                nodes = self.model.mesh.getNodes(self.dim-1, tag, includeBoundary=True)[1]
                 params = self.model.getParametrization(self.dim-1, tag, nodes)
                 p = self.dim-1
                 for k in range(len(params)//p):

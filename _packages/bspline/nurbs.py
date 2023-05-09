@@ -335,6 +335,7 @@ class NURBsCurve:
             The displacement of the point. If typ == "control point" then a numpy array is returned where each element is the displacement of the point
             with respect to the kth coordinate. If typ == "weight", the displacement is a float.
         """
+        u = self.validate_params(u)
         unit_norm = self.get_unit_normal(u, flip_norm=flip_norm)
 
         if typ == "control point":
@@ -437,6 +438,15 @@ class NURBsCurve:
             self.initialise_nurb(ctrl_points, weights, knots, multiplicities, self.degree)
 
         return uq, ctrl_points, weights
+    
+
+    def validate_params(self, u):
+        if np.isclose(u, self.knotsU[-1]):
+            u = self.knotsU[-1]
+        elif np.isclose(u, self.knotsV[0]):
+            u = self.knotsU[0]
+
+        return u
 
 
 
@@ -846,6 +856,8 @@ class NURBsSurface:
             The displacement of the point. If typ == "control point" then a numpy array is returned where each element is the displacement of the point
             with respect to the kth coordinate. If typ == "weight", the displacement is a float.
         """
+        u, v = self.validate_params(u, v)
+
         unit_norm = self.get_unit_normal(u, v, flip_norm=flip_norm)
         if typ == "control point":
 
@@ -997,6 +1009,20 @@ class NURBsSurface:
                     w_ders[l][m] += N_ders_v[m][s]*temp_w[s]
 
         return A_ders, w_ders
+
+
+    def validate_params(self, u, v):
+        if np.isclose(u, self.knotsU[-1]):
+            u = self.knotsU[-1]
+        elif np.isclose(u, self.knotsV[0]):
+            u = self.knotsU[0]
+
+        if np.isclose(v, self.knotsV[-1]):
+            v = self.knotsV[-1]
+        elif np.isclose(v, self.knotsV[0]):
+            v = self.knotsV[0]
+
+        return [u, v]
 
 
 

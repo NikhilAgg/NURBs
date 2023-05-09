@@ -123,7 +123,7 @@ def find_shapegrad_dirichlet(omega, p, p_adj, geom, ds, c, typ, bspline_ind, par
     # G = ufl.div(p_adj*(c**2)*ufl.grad(p))
 
 
-    C = fem.Function(geom.V)
+    # C = fem.Function(geom.V)
     geom.create_node_to_param_map()
     C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], tie=tie), ep_list)
 
@@ -136,13 +136,13 @@ cache = False
 ep_step = 0.01
 ro = 0.5
 ri = 0.25
-param_ind = 4
+param_ind = 2
 typ = "control point"
 bspline_ind = (0, 0)
 
 if typ == "control point":
     tie = True
-    ep_list = np.array([1., 0.])
+    ep_list = np.array([0., 1.])
 else:
     tie = True
     ep_list = 1

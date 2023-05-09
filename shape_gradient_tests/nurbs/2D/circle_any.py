@@ -72,7 +72,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(r, epsilon, 5e-3, degree, typ, bspline_ind, param_ind)
+    geom = create_mesh(r, epsilon, 0.05, degree, typ, bspline_ind, param_ind)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {9: {'Dirichlet'}}
@@ -104,7 +104,12 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, 
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], flip=True, tie=tie), ep_list)
+    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], flip_norm=True, tie=tie), ep_list)
+
+    # with XDMFFile(MPI.COMM_WORLD, "disp_field.xdmf", "w") as xdmf:
+    #     C = geom.get_displacement_field(typ, bspline_ind, [param_ind], flip_norm=True, tie=tie)
+    #     xdmf.write_mesh(geom.msh)
+    #     xdmf.write_function(C)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -114,13 +119,13 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, 
 cache = False
 ep_step = 0.001
 r = 1.
-param_ind = 0
-typ = "weight"
+param_ind = 2
+typ = "control point"
 bspline_ind = (0, 0)
 
 if typ == "control point":
     tie = True
-    ep_list = np.array([1., 0.])
+    ep_list = np.array([0., 1.])
 else:
     tie = True
     ep_list = 1
@@ -132,7 +137,7 @@ x_points = []
 y_points = []
 omegas = [omega.real]
 
-for i in range(1, 6):
+for i in range(1, 10):
     epsilon = ep_step*i
     omega_new = find_eigenvalue(r, epsilon*ep_list, typ, bspline_ind, param_ind)[0]
     Delta_w_FD = omega_new.real - omega.real
@@ -147,6 +152,7 @@ for i in range(1, 6):
 
 plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')
 plt.plot(x_points, y_points)
+plt.scatter(x_points, y_points)
 plt.xlabel('$\epsilon^2$')
 plt.ylabel('$|\delta_{FD} - \delta_{AD}|$')
 plt.show()
