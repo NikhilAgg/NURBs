@@ -187,7 +187,7 @@ geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
 geom.create_function_space("CG", 1)
 
 geom.create_node_to_param_map()
-C = geom.get_displacement_field("control point", [0, 1], [0, 0])
+C = geom.get_displacement_field("control point", [0, 1], [2, 0])
 with dolfinx.io.XDMFFile(MPI.COMM_WORLD, "disp_field.xdmf", "w") as xdmf:
     xdmf.write_mesh(geom.msh)
     xdmf.write_function(C)
