@@ -333,7 +333,10 @@ class NURBsCurve:
         dC = ders[1]
         d2C = ders[2]
 
-        curvature = np.linalg.norm(np.cross(dC, d2C)) / np.linalg.norm(dC)**3
+        if self.dim == 2:
+            curvature = np.cross(dC, d2C)[0] / np.linalg.norm(dC)**3
+        else:
+            curvature = np.linalg.norm(np.cross(dC, d2C)) / np.linalg.norm(dC)**3
 
         flip_norm = flip_norm if flip_norm != None else self.flip_norm
         if flip_norm:
