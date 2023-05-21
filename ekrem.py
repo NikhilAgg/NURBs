@@ -182,7 +182,7 @@ def cylinder(ro, ri, l, lc):
 geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
 geom.generate_mesh()
 geom.add_nurbs_groups([[1, 2, 3, 4]])
-geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
+geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=True)
 
 geom.create_function_space("CG", 1)
 
