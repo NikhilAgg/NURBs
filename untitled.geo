@@ -12,3 +12,5 @@ BooleanFragments{ Curve{4}; Curve{5}; Delete; }{ }
 BooleanFragments{ Curve{2}; Curve{1}; Delete; }{ }
 //+
 BooleanFragments{ Point{2}; Curve{1}; Delete; }{ }
+//+
+Point(6) = {1.25, 0, 0.5, 1.0};

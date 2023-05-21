@@ -24,11 +24,19 @@ class NURBsCurve:
             the number of control points + degree + 1 and the first and last multiplicity must be equal to degree + 1 to defined a clamped bspline
         degree: int
             The degree of the bspline curve
+        lc: list or 1d numpy array
+            A list of floats which correspond to the chararcteristic mesh size at each control point in Gmsh. If set to none, set to 1 for all control points
+            (Default: None)
         """
-        self.initialise_nurb(ctrl_points, weights, knots, multiplicities, degree)
-        
-        self.degree = degree
-        self.lc = lc
+
+        #Default values
+        self.weights = np.ones(len(ctrl_points))
+        self.lc = np.ones(len(ctrl_points))
+        self.multiplicities = list(np.ones(len(knots)))
+
+        self.set_ctrl_points(ctrl_points, weights, lc)
+        self.set_knots(knots, multiplicities)
+        self.set_degree(degree)
 
         #Other
         self.create_ctrl_point_dict()
@@ -441,13 +449,67 @@ class NURBsCurve:
     
 
     def validate_params(self, u):
-        if np.isclose(u, self.knotsU[-1]):
-            u = self.knotsU[-1]
-        elif np.isclose(u, self.knotsV[0]):
-            u = self.knotsU[0]
+        if np.isclose(u, self.knots[-1]):
+            u = self.knots[-1]
 
         return u
 
+
+    def set_ctrl_points(self, ctrl_points=None, weights=None, lc=None):
+        """
+        Set ctrl_points and weights for curve.
+
+        Parameters
+        ----------------------------
+        ctrl_points: list of lists or 2d numpy array
+            A list of the control points for the curve. If set to None, ctrl_points remain unchanged (Default: None)
+        weights: list or 1d numpy array
+            A list of weights corresponding to each of the control points defined in the arguement ctrl_points. 
+            If set to None, ctrl_points remain unchanged (Default: None)
+        lc: list or 1d numpy array
+            A list of floats which correspond to the chararcteristic mesh size at each control point in Gmsh. If set to none, lc will remain unchanged
+            (Default: None)
+        """
+        self.ctrl_points = np.array(ctrl_points) if np.any(ctrl_points) else self.ctrl_points
+        self.dim = len(self.ctrl_points[0])
+        self.n = len(ctrl_points)
+        self.weights = np.array(weights) if np.any(weights) else self.weights
+        self.lc = np.array(lc) if np.any(lc) else self.lc
+
+        assert self.ctrl_points.shape[0] == self.weights.shape[0] and self.ctrl_points.shape[0] == self.lc.shape[0]
+
+    
+    def set_knots(self, knots=None, multiplicities=None):
+        """
+        Set knots for curve.
+
+        Parameters
+        ----------------------------
+        knots: list
+            A list of the unique knot/node values of the curve. If set to None, ctrl_points remain unchanged (Default: None)
+        multiplicities: list of ints
+            A list of containing the number of times each knot is repeated. Note that the number of unique knot values * sum(multiplicities) must equal
+            the number of control points + degree + 1 and the first and last multiplicity must be equal to degree + 1 to defined a clamped bspline. 
+            If set to None, ctrl_points remain unchanged (Default: None)
+        """
+        self.knots = list(knots) if np.any(knots) else self.knots
+        self.multiplicities = list(multiplicities) or self.multiplicities
+
+        assert len(self.knots) == len(self.multiplicities)
+
+        self.U = list(chain.from_iterable([[knots[i]] * multiplicities[i] for i in range(len(knots))]))
+
+    
+    def set_degree(self, degree):
+        """
+        Set degree for curve.
+
+        Parameters
+        ----------------------------
+        degree: int
+            The degree of the bspline curve
+        """
+        self.degree = degree
 
 
 class NURBsSurface:
@@ -485,10 +547,10 @@ class NURBsSurface:
         self.n = self.nU * self.nV
         self.dim = len(self.ctrl_points[0][0])
         
-        self.knotsU = knotsU
-        self.knotsV = knotsV
-        self.multiplicitiesU = multiplicitiesU or np.ones(len(knotsU))
-        self.multiplicitiesV = multiplicitiesV or np.ones(len(knotsV))
+        self.knotsU = list(knotsU)
+        self.knotsV = list(knotsV)
+        self.multiplicitiesU = list(multiplicitiesU) or list(np.ones(len(knotsU)))
+        self.multiplicitiesV = list(multiplicitiesV) or list(np.ones(len(knotsV)))
         self.U = list(chain.from_iterable([[knotsU[i]] * multiplicitiesU[i] for i in range(len(knotsU))]))
         self.V = list(chain.from_iterable([[knotsV[i]] * multiplicitiesV[i] for i in range(len(knotsV))]))
 
@@ -573,7 +635,6 @@ class NURBsSurface:
             multiplicitiesV[-1] -= 1
 
         return multiplicitiesU, multiplicitiesV
-
 
 
     def calculate_point(self, u, v): 
@@ -857,7 +918,7 @@ class NURBsSurface:
             with respect to the kth coordinate. If typ == "weight", the displacement is a float.
         """
         u, v = self.validate_params(u, v)
-
+        
         unit_norm = self.get_unit_normal(u, v, flip_norm=flip_norm)
         if typ == "control point":
 
@@ -1054,9 +1115,10 @@ def U_vec_to_knots(U):
 
     return knots, multiplicities
 
+
 def find_inds(i, degree):
     """
-    Given a knot space i and a degree returns the index of the 
+    Given a knot span i and a degree returns the index of the 
     first control point with a nonzero basis function in the ith knot span and 
     the number of non-zero basis functions
 
