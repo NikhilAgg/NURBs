@@ -193,13 +193,15 @@ class NURBsGeometry:
             dim = 1
   
         def get_displacement(nurbs):
-            nonlocal typ, flip_norm, deriv_nurbs, nurb_ind
+            nonlocal typ, flip_norm, deriv_nurbs, nurb_ind, dim
             for indices, params in nurbs:
+                C = np.zeros(dim)
                 if tuple(indices) in deriv_nurbs: 
                     i, j = indices
                     param_ind = deriv_nurbs[tuple(indices)][0]
-                    C = self.nurbs[i][j].get_displacement(typ, *params, *param_ind, flip_norm, tie)
-                    return C
+                    C += self.nurbs[i][j].get_displacement(typ, *params, *param_ind, flip_norm, tie)
+                    
+                return C
             
             return np.zeros(dim)
 

@@ -165,7 +165,7 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
     y_points = [0]
     omegas = [omega.real]
 
-    for i in range(1, 6):
+    for i in range(1, 20):
         epsilon = ep_step*i 
         omega_new = find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list)[0]
         
@@ -177,15 +177,15 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
-ep_step = 0.005
+ep_step = 0.01
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [3e-2]
+lcs = [2.5e-2]
 
 bspline_inds = [(0, 1)] #, (0, 2)]
 param_inds = [[[0, 0]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
-typs = ['control point', 'weight']
+typs = ['weight']
 
 for lc in lcs:
     for i in range(len(typs)):
