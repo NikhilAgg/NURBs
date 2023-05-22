@@ -72,7 +72,7 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 def find_eigenvalue(r, epsilon, typ, bspline_ind, param_ind):
     degree = 3
     c_const = np.sqrt(1)
-    geom = create_mesh(r, epsilon, 0.05, degree, typ, bspline_ind, param_ind)
+    geom = create_mesh(r, epsilon, 0.001, degree, typ, bspline_ind, param_ind)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
     boundary_conditions = {9: {'Dirichlet'}}
@@ -104,7 +104,7 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, 
     G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
     C = fem.Function(geom.V)
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], flip_norm=True, tie=tie), ep_list)
+    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], tie=tie), ep_list)
 
     # with XDMFFile(MPI.COMM_WORLD, "disp_field.xdmf", "w") as xdmf:
     #     C = geom.get_displacement_field(typ, bspline_ind, [param_ind], flip_norm=True, tie=tie)
@@ -112,20 +112,20 @@ def find_shapegrad_dirichlet(r, omega, p, p_adj, geom, ds, c, typ, bspline_ind, 
     #     xdmf.write_function(C)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
-
+    print(dw)
     return dw
 
 
 cache = False
-ep_step = 0.001
+ep_step = 0.01
 r = 1.
-param_ind = 2
+param_ind = 0
 typ = "control point"
 bspline_ind = (0, 0)
 
 if typ == "control point":
     tie = True
-    ep_list = np.array([0., 1.])
+    ep_list = np.array([1., 1.])
 else:
     tie = True
     ep_list = 1
@@ -148,6 +148,7 @@ for i in range(1, 10):
     print(f"x_points = {x_points}")
     print(f"y_points = {y_points}")
     print(f"delta_ws = {[(omegas[i] - omegas[i-1])/ep_step for i in range(1, len(omegas))]}")
+    print(dw)
 
 
 plt.plot([x_points[0], x_points[-1]], [y_points[0], y_points[-1]], color='0.8', linestyle='--')

@@ -33,7 +33,7 @@ def create_mesh(ro, ri, epsilon, lc, degree, typ, bspline_ind, param_ind):
     geom.model.remove()
     geom.generate_mesh()
     geom.add_nurbs_groups([[9], [10]])
-    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=True)
+    geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
     geom.create_function_space("Lagrange", degree)
 
     return geom
@@ -124,8 +124,9 @@ def find_shapegrad_dirichlet(omega, p, p_adj, geom, ds, c, typ, bspline_ind, par
 
 
     # C = fem.Function(geom.V)
+    geom.create_function_space("Lagrange", 1)
     geom.create_node_to_param_map()
-    C = np.dot(geom.get_displacement_field(typ, bspline_ind, [param_ind], tie=tie), ep_list)
+    C = np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind, tie=tie), ep_list)
 
     dw = fem.assemble_scalar(fem.form(G*C*ds))
 
@@ -133,10 +134,10 @@ def find_shapegrad_dirichlet(omega, p, p_adj, geom, ds, c, typ, bspline_ind, par
 
 
 cache = False
-ep_step = 0.01
+ep_step = 0.0001
 ro = 0.5
 ri = 0.25
-param_ind = 2
+param_ind = [2]
 typ = "control point"
 bspline_ind = (0, 0)
 

@@ -162,7 +162,7 @@ def circle(r, epsilon, lc):
         2
     )
     circle.set_uniform_lc(lc)
-
+    circle.flip_norm = True
     return circle
 
 # circle = circle(1, 0, 1e-2)
@@ -212,7 +212,7 @@ def edit_param_2d(geom, typ, bspline_ind, param_ind, epsilon):
     bspline = geom.nurbs[i][j]
 
     if typ == "control point":
-        bsplines = geom.get_deriv_nurbs("control point", bspline_ind, [param_ind])
+        bsplines = geom.get_deriv_nurbs("control point", bspline_ind, param_ind)
         for bspline in bsplines:
             params = bsplines[bspline]
             for param_inds in params:
