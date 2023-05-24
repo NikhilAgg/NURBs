@@ -34,3 +34,14 @@ plt.scatter(x_points, y_points)
 plt.show()
 
 
+# ro = 0.5	 ri = 0.25	 l = 1	 ep_list = [1] 	 ep_step = 0.01	 lc = 0.005
+x_points = [0, 0.0001, 0.0004]
+y_points = [0, 0.0021650192786619605, 0.0043222639320683355]
+omegas = [4.809691213543036, 4.810771162232566, 4.811843336296841]
+delta_ws = [0.1079948689530319, 0.10721740642747335]
+delta_ws = [-0.0007774625255585477]
+dw = (-0.10850705891316417-2.6884870200787934e-16j)
+plt.plot(x_points, y_points, label = 0.005)
+plt.scatter(x_points, y_points)
+
+

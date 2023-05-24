@@ -15,7 +15,7 @@ from dolfinx import fem
 from petsc4py import PETSc
 from helmholtz_x.passive_flame_x import *
 from helmholtz_x.eigensolvers_x import eps_solver
-from helmholtz_x.eigenvectors_x import normalize_eigenvector
+from helmholtz_x.eigenvectors_x import normalize_eigenvector, normalize_adjoint
 from helmholtz_x.petsc4py_utils import conjugate_function
 from dolfinx_utils import *
 from bspline.nurbs_geometry import NURBs3DGeometry
@@ -74,7 +74,7 @@ class WriteResults:
 
 
 def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_inds, lc, degree, ep_list):
-    start, cylinder, end, inner_cylinder = lots(ro, ri, l, lc)
+    start, cylinder, end, inner_cylinder = smooth_annulus(ro, ri, l, 0, 0, 0, lc)
     geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
     for i, param_ind in enumerate(param_inds):
         geom.nurbs[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]][0] = lc
@@ -110,32 +110,35 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 
 def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list):
     degree = 2
-    c_const = np.sqrt(1)
+    c_const = 343
     geom = create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree, ep_list)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
-    boundary_conditions = {1: {'Dirichlet'},
-                           2: {'Dirichlet'},
-                           3: {'Dirichlet'},
-                           4: {'Dirichlet'}}
+    boundary_conditions = {1: {'Neumann'},
+                           2: {'Neumann'},
+                           3: {'Neumann'},
+                           4: {'Neumann'}}
     ds = ufl.ds
     facet_tags = geom.facet_tags
 
     matrices = PassiveFlame(geom.msh, facet_tags, boundary_conditions, c , degree = degree)
     matrices.assemble_A()
+    matrices.assemble_B()
     matrices.assemble_C()
     A = matrices.A
+    B = matrices.B
     C = matrices.C
 
-    target =  c_const * np.pi * 3.1
+    target =  c_const * np.pi * 3.2
     E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     _, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
 
     # p = normalize_magnitude(p)
     # p_adj = normalize_magnitude(p_adj)
+    p_adj = normalize_adjoint(omega, p, p_adj, matrices)
     
-    p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
+    # p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
 
     # plot_slices(geom.msh, geom.V, p)
 
@@ -143,7 +146,8 @@ def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list
 
 
 def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds, ep_list):
-    G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
+    # G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
+    G = ufl.div(ufl.conj(p_adj)*(c**2)*ufl.grad(p))
 
     geom.create_function_space("CG", 1)
     geom.create_node_to_param_map()
@@ -170,7 +174,7 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
     y_points = [0]
     omegas = [omega.real]
 
-    for i in range(1, 20):
+    for i in range(1, 10):
         epsilon = ep_step*i 
         omega_new = find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list)[0]
         
@@ -182,15 +186,15 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
-ep_steps = [0.002]
+ep_steps = [0.05]
 ro = 0.5
 ri = 0.25
-l = 1
-lcs = [6e-2]
+l = 0.5
+lcs = [4e-2]
 
-bspline_inds = [(0, 1)] #, (0, 2)]
-param_inds = [[[2, 0]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
-typs = ['control point']
+bspline_inds = [(0, 0)] #, (0, 2)]
+param_inds = [[[0, 4]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
+typs = ['control point', 'weight']
 
 for lc in lcs:
     for j in range(len(ep_steps)):
@@ -200,7 +204,7 @@ for lc in lcs:
             elif typs[i] == "weight":
                 ep_list = [1]
 
-            fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
+            fil = WriteResults(typs[i], bspline_inds[0], param_inds[0])
             
             fil.new_test(ro, ri, l, ep_list, ep_steps[j], lc)
-            taylor_test(ro, ri, l, lc, bspline_inds[i], param_inds[i], typs[i], ep_steps[j], ep_list, fil)
+            taylor_test(ro, ri, l, lc, bspline_inds[0], param_inds[0], typs[i], ep_steps[j], ep_list, fil)

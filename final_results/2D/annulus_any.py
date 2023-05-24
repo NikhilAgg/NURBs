@@ -15,7 +15,7 @@ from dolfinx import fem
 from petsc4py import PETSc
 from helmholtz_x.passive_flame_x import *
 from helmholtz_x.eigensolvers_x import eps_solver
-from helmholtz_x.eigenvectors_x import normalize_eigenvector
+from helmholtz_x.eigenvectors_x import normalize_eigenvector, normalize_adjoint
 from helmholtz_x.petsc4py_utils import conjugate_function
 from dolfinx_utils import *
 from bspline.nurbs_geometry import NURBs3DGeometry
@@ -74,17 +74,17 @@ class WriteResults:
 
 
 def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_inds, lc, degree, ep_list):
-    start, cylinder, end, inner_cylinder = lots(ro, ri, l, lc)
-    geom = NURBs3DGeometry([[start, cylinder, end, inner_cylinder]])
+    circ, inner_circ = circle(ro, 0, lc)
+    geom = NURBs2DGeometry([[circ], [inner_circ]])
     for i, param_ind in enumerate(param_inds):
-        geom.nurbs[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]][0] = lc
-        geom = edit_param_3d(geom, typ, bspline_ind, param_ind, epsilon*ep_list[i])
+        geom.nurbs[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]] = lc
+        geom = edit_param_2d(geom, typ, bspline_ind, param_ind, epsilon*ep_list[i])
     geom.model.remove_physical_groups()
     geom.model.remove()
     geom.generate_mesh()
-    geom.add_nurbs_groups([[1, 2, 3, 4]])
+    geom.add_nurbs_groups([[1], [1]])
     geom.model_to_fenics(MPI.COMM_WORLD, 0, show_mesh=False)
-    geom.create_function_space("CG", degree)
+    geom.create_function_space("Lagrange", degree)
 
     return geom
 
@@ -102,32 +102,31 @@ def normalize_robin_vectors(omega, A, C, p, p_adj, c, geom):
 
     norm_const = first_term_val + second_term_val
 
-    p = p/np.sqrt(norm_const)
-    p_adj = p_adj/np.sqrt(norm_const)
+    p.x.array[:] = p.x.array/np.sqrt(norm_const)
+    p_adj.x.array[:] = p_adj.x.array/np.sqrt(norm_const)
 
     return [p, p_adj]
 
 
 def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list):
     degree = 2
-    c_const = np.sqrt(1)
+    c_const = 343
     geom = create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_ind, lc, degree, ep_list)
     c = fem.Constant(geom.msh, PETSc.ScalarType(c_const))
 
-    boundary_conditions = {1: {'Dirichlet'},
-                           2: {'Dirichlet'},
-                           3: {'Dirichlet'},
-                           4: {'Dirichlet'}}
+    boundary_conditions = {1: {'Dirichlet'}}
     ds = ufl.ds
     facet_tags = geom.facet_tags
 
     matrices = PassiveFlame(geom.msh, facet_tags, boundary_conditions, c , degree = degree)
     matrices.assemble_A()
+    matrices.assemble_B()
     matrices.assemble_C()
     A = matrices.A
+    B = matrices.B
     C = matrices.C
 
-    target =  c_const * np.pi * 3.1
+    target =  c_const * np.pi * 3.0
     E = eps_solver(A, C, target**2, nev = 1, two_sided=True)
     omega, p = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='right')
     _, p_adj = normalize_eigenvector(geom.msh, E, 0, degree=degree, which='left')
@@ -136,29 +135,28 @@ def find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list
     # p_adj = normalize_magnitude(p_adj)
     
     p, p_adj = normalize_robin_vectors(omega, A, C, p, p_adj, c, geom)
-
+    # p_adj = normalize_adjoint(omega, p, p_adj, matrices)
     # plot_slices(geom.msh, geom.V, p)
 
     return [omega, p, p_adj, geom, ds, c]
 
 
 def find_shapegrad_dirichlet(p, p_adj, geom, ds, c, typ, bspline_ind, param_inds, ep_list):
-    G = -c**2*ufl.Dn(p)*ufl.Dn(p_adj)
+    G = -c**2*ufl.Dn(p)*ufl.Dn(ufl.conj(p_adj))
 
-    geom.create_function_space("CG", 1)
-    geom.create_node_to_param_map()
+    geom.create_function_space("Lagrange", 1)
+    geom.create_node_to_param_map(decimal_points=12)
     C = fem.Function(geom.V)
     dw = 0
     for i, param_ind in enumerate(param_inds):
-        C += np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind, tie=True), ep_list[i])
+        C += np.dot(geom.get_displacement_field(typ, bspline_ind, param_ind, tie=False), ep_list[i])
 
     # with dolfinx.io.XDMFFile(MPI.COMM_WORLD, "disp_field.xdmf", "w") as xdmf:
     #     C = geom.get_displacement_field(typ, bspline_ind, param_inds[0], tie=True, flip_norm=True)
     #     xdmf.write_mesh(geom.msh)
-    #     xdmf.write_function(C)
+    #     xdmf.write_function(p)
 
-    dw = fem.assemble_scalar(fem.form(G*C*ds))
-    # print(dw)
+    dw = -fem.assemble_scalar(fem.form(G*C*ds))
     return dw
 
 
@@ -170,7 +168,7 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
     y_points = [0]
     omegas = [omega.real]
 
-    for i in range(1, 20):
+    for i in range(1, 10):
         epsilon = ep_step*i 
         omega_new = find_eigenvalue(ro, ri, l, lc, epsilon, typ, bspline_ind, param_ind, ep_list)[0]
         
@@ -182,25 +180,24 @@ def taylor_test(ro, ri, l, lc, bspline_ind, param_ind, typ, ep_step, ep_list, fi
         fil.write_results(x_points, y_points, omegas, dw, ep_step, lc)
         
 
-ep_steps = [0.002]
+ep_step = 0.001
 ro = 0.5
 ri = 0.25
 l = 1
-lcs = [6e-2]
+lcs = [1e-2]
 
-bspline_inds = [(0, 1)] #, (0, 2)]
-param_inds = [[[2, 0]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
+bspline_inds = [(0, 0)] #, (0, 2)]
+param_inds = [[[2]]] #1, 4 for control point -1, 1, 1 and 0, 5 for weight [[1, 4]]] #, 
 typs = ['control point']
 
 for lc in lcs:
-    for j in range(len(ep_steps)):
-        for i in range(len(typs)):
-            if typs[i] == "control point":
-                ep_list = np.array([[1., 1., -1.]])
-            elif typs[i] == "weight":
-                ep_list = [1]
+    for i in range(len(typs)):
+        if typs[i] == "control point":
+            ep_list = np.array([[0., 1.]])
+        elif typs[i] == "weight":
+            ep_list = [1]
 
-            fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
-            
-            fil.new_test(ro, ri, l, ep_list, ep_steps[j], lc)
-            taylor_test(ro, ri, l, lc, bspline_inds[i], param_inds[i], typs[i], ep_steps[j], ep_list, fil)
+        fil = WriteResults(typs[i], bspline_inds[i], param_inds[i])
+        
+        fil.new_test(ro, ri, l, ep_list, ep_step, lc)
+        taylor_test(ro, ri, l, lc, bspline_inds[i], param_inds[i], typs[i], ep_step, ep_list, fil)

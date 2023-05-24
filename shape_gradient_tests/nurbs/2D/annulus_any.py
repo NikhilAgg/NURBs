@@ -74,7 +74,7 @@ class WriteResults:
 
 
 def create_mesh(ro, ri, l, epsilon, typ, bspline_ind, param_inds, lc, degree, ep_list):
-    circ = circle(ro, 0, lc)
+    circ, _ = circle(ro, 0, lc)
     geom = NURBs2DGeometry([[circ]])
     for i, param_ind in enumerate(param_inds):
         geom.nurbs[bspline_ind[0]][bspline_ind[1]].lc[param_ind[0]] = lc

@@ -162,6 +162,7 @@ def circle(r, epsilon, lc):
         2
     )
     circle.set_uniform_lc(lc)
+    circle.flip_norm = True
 
     r = r/2
     points = [
@@ -185,7 +186,7 @@ def circle(r, epsilon, lc):
     )
     inner_circle.set_uniform_lc(lc)
 
-    inner_circle.flip_norm = True
+    inner_circle.flip_norm = False
     return circle, inner_circle
 
 # circle = circle(1, 0, 1e-2)

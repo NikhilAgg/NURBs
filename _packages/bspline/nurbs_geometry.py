@@ -113,7 +113,7 @@ class NURBsGeometry:
         """
         self.model.occ.remove_all_duplicates()
         self.model.mesh.generate(self.dim)
-        self.msh, self.cell_markers, self.facet_tags = gmshio.model_to_mesh(self.model, comm, rank)
+        self.msh, self.subdomains, self.facet_tags = gmshio.model_to_mesh(self.model, comm, rank)
 
         t_imap = self.msh.topology.index_map(self.msh.topology.dim)
         num_cells = t_imap.size_local + t_imap.num_ghosts
